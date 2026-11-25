@@ -77,6 +77,10 @@ def parse_cards(html: str) -> list[JobCard]:
     return cards
 
 
+# HTTP status of the most recent search request; 999 or 429 means LinkedIn is blocking us.
+last_status: int | None = None
+
+
 def search(
     keyword: str,
     hours: int = 6,
@@ -88,6 +92,7 @@ def search(
 ) -> list[JobCard]:
     """Jobs posted in the last `hours` for one keyword. Stops early when a page is
     short (no more results) and backs off once if LinkedIn rate limits us."""
+    global last_status
     own_client = client is None
     client = client or httpx.Client(headers=HEADERS, timeout=20, follow_redirects=True)
     found: list[JobCard] = []
@@ -108,6 +113,7 @@ def search(
                 log.warning("rate limited on %r page %d, waiting before one retry", keyword, page)
                 time.sleep(30)
                 resp = client.get(SEARCH_URL, params=params)
+            last_status = resp.status_code
             if resp.status_code != 200:
                 log.warning("search %r page %d returned HTTP %d", keyword, page, resp.status_code)
                 break

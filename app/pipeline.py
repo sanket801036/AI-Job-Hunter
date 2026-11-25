@@ -21,6 +21,7 @@ from app.db import init_db, release_lock, session_scope, try_lock
 from app.filters import effective_profile, set_setting
 from app.judge import judge, pre_filter
 from app.linkedin.detail import fetch_detail
+from app.linkedin import search as search_mod
 from app.linkedin.search import HEADERS, dedupe, search
 from app.llm.client import AllProvidersFailed
 from app.models import Evaluation, Job, SearchProfile
@@ -42,8 +43,10 @@ def ensure_default_profile(session) -> None:
         session.flush()
 
 
-def collect_new_jobs(session, client: httpx.Client) -> int:
+def collect_new_jobs(session, client: httpx.Client, stats: dict | None = None) -> int:
     """Search every active profile and store jobs we have not seen before."""
+    stats = stats if stats is not None else {}
+    stats["listed"] = 0
     pages = get_settings().search_pages
     seen = set(session.scalars(select(Job.linkedin_id)))
     added = 0
@@ -51,6 +54,8 @@ def collect_new_jobs(session, client: httpx.Client) -> int:
         for keyword in profile.keyword_list:
             cards = search(keyword, hours=profile.hours, work_types=profile.work_types,
                            geo_id=profile.geo_id, pages=pages, client=client, under_10=profile.under_10)
+            stats["listed"] += len(cards)
+            stats["linkedin_http"] = search_mod.last_status
             for card in dedupe(cards, seen):
                 seen.add(card.linkedin_id)
                 session.add(Job(linkedin_id=card.linkedin_id, title=card.title, company=card.company,
@@ -119,7 +124,7 @@ def run_once(source: str = "github") -> dict:
         with httpx.Client(headers=HEADERS, timeout=20, follow_redirects=True) as client:
             with session_scope() as session:
                 ensure_default_profile(session)
-                stats["found"] = collect_new_jobs(session, client)
+                stats["found"] = collect_new_jobs(session, client, stats)
             judge_pending(client, stats)
         notify_eligible(stats)
         with session_scope() as session:  # shown by the Telegram "status" command
