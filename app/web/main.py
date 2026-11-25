@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.db import init_db
 from app.models import Application, Evaluation, Job, SearchProfile
-from app.web import auth, companies, profiles, tracker
+from app.web import auth, companies, profiles, telegram_bot, tracker
 from app.web.common import get_db, render, templates
 
 @asynccontextmanager
@@ -23,8 +23,9 @@ app = FastAPI(title="AI Job Hunter", docs_url=None, redoc_url=None, lifespan=lif
 app.include_router(profiles.router)
 app.include_router(tracker.router)
 app.include_router(companies.router)
+app.include_router(telegram_bot.router)
 
-PUBLIC_PATHS = {"/login", "/healthz", "/favicon.ico"}
+PUBLIC_PATHS = {"/login", "/healthz", "/favicon.ico", "/telegram/webhook"}
 
 
 @app.middleware("http")
