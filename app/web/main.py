@@ -25,7 +25,7 @@ app.include_router(tracker.router)
 app.include_router(companies.router)
 app.include_router(telegram_bot.router)
 
-PUBLIC_PATHS = {"/login", "/healthz", "/favicon.ico", "/telegram/webhook"}
+PUBLIC_PATHS = {"/login", "/healthz", "/favicon.ico", "/telegram/webhook", "/cron/scan"}
 
 
 @app.middleware("http")

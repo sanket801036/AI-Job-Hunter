@@ -38,29 +38,46 @@ def _command(text: str) -> str:
     return "help"
 
 
-def _scan() -> None:
+def _scan(notify: bool) -> None:
     from app.pipeline import run_once
 
     try:
         stats = run_once()
+        if not notify:
+            return
+        if stats.get("skipped"):
+            send_message("Another scan was already running, so its results will come from that one.")
+            return
         send_message(
             f"Scan finished: {stats['found']} new jobs, {stats['judged']} checked, "
             f"{stats['notified']} sent to you."
             + (f" {stats['errors']} errors." if stats.get("errors") else "")
         )
     except Exception:
-        log.exception("scan from Telegram failed")
-        send_message("Scan failed. Check the server logs.")
+        log.exception("scan failed")
+        if notify:
+            send_message("Scan failed. Check the server logs.")
     finally:
         _run_lock.release()
 
 
-def start_scan() -> bool:
-    """Start a scan in a background thread. False if one is already running."""
+def start_scan(notify: bool = True) -> bool:
+    """Start a scan in a background thread. False if one is already running here.
+    notify=False is for the 10-minute timer: only new jobs are messaged, no summary."""
     if not _run_lock.acquire(blocking=False):
         return False
-    threading.Thread(target=_scan, daemon=True).start()
+    threading.Thread(target=_scan, args=(notify,), daemon=True).start()
     return True
+
+
+@router.api_route("/cron/scan", methods=["GET", "POST"])
+def cron_scan(key: str = ""):
+    """Hit every 10 minutes by an external timer (cron-job.org). The calls also keep
+    the free Render instance awake."""
+    s = get_settings()
+    if not s.webhook_secret or not hmac.compare_digest(key, s.webhook_secret):
+        return {"ok": False}
+    return {"ok": True, "started": start_scan(notify=False)}
 
 
 def status_text() -> str:
