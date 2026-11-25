@@ -16,7 +16,7 @@ import httpx
 from sqlalchemy import select
 
 from app.config import get_settings
-from app.db import init_db, session_scope
+from app.db import init_db, release_lock, session_scope, try_lock
 from app.filters import effective_profile
 from app.judge import judge, pre_filter
 from app.linkedin.detail import fetch_detail
@@ -29,6 +29,7 @@ log = logging.getLogger("pipeline")
 
 MAX_NEW_JOBS_PER_RUN = 30  # keeps one run well inside the 10 minute window
 MAX_NOTIFICATIONS_PER_RUN = 10
+LOCK_SECONDS = 15 * 60  # a crashed run frees the lock after this
 
 
 def ensure_default_profile(session) -> None:
@@ -110,12 +111,18 @@ def recheck_job(session, job: Job) -> None:
 def run_once() -> dict:
     init_db()
     stats = {"found": 0, "judged": 0, "eligible": 0, "notified": 0, "filtered": 0, "errors": 0}
-    with httpx.Client(headers=HEADERS, timeout=20, follow_redirects=True) as client:
-        with session_scope() as session:
-            ensure_default_profile(session)
-            stats["found"] = collect_new_jobs(session, client)
-        judge_pending(client, stats)
-    notify_eligible(stats)
+    if not try_lock("scan", LOCK_SECONDS):
+        log.info("another scan is running, skipping this one")
+        return {**stats, "skipped": True}
+    try:
+        with httpx.Client(headers=HEADERS, timeout=20, follow_redirects=True) as client:
+            with session_scope() as session:
+                ensure_default_profile(session)
+                stats["found"] = collect_new_jobs(session, client)
+            judge_pending(client, stats)
+        notify_eligible(stats)
+    finally:
+        release_lock("scan")
     log.info("run finished: %s", stats)
     return stats
 
@@ -182,12 +189,16 @@ def fetch_now(profile_ids: list[int], hours: int, under_10: bool, work_types: st
 
 def judge_and_notify_in_background() -> None:
     stats = {"judged": 0, "filtered": 0, "errors": 0, "eligible": 0, "notified": 0}
+    if not try_lock("scan", LOCK_SECONDS):
+        return  # the running scan will judge these jobs too
     try:
         with httpx.Client(headers=HEADERS, timeout=20, follow_redirects=True) as client:
             judge_pending(client, stats)
         notify_eligible(stats)
     except Exception:
         log.exception("background judging failed")
+    finally:
+        release_lock("scan")
 
 
 if __name__ == "__main__":

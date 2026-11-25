@@ -2,7 +2,7 @@
 people I contact for referrals, and interview rounds."""
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, LargeBinary, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -194,3 +194,14 @@ class Setting(Base):
 
     key: Mapped[str] = mapped_column(String(100), primary_key=True)
     value: Mapped[dict | list | str] = mapped_column(JSON)
+
+
+class RunLock(Base):
+    """Lets only one scan run at a time, even when GitHub Actions and the Render
+    server start one together. locked_until is a Unix time; a crashed run's lock
+    simply expires."""
+
+    __tablename__ = "run_locks"
+
+    name: Mapped[str] = mapped_column(String(50), primary_key=True)
+    locked_until: Mapped[float] = mapped_column(Float, default=0)

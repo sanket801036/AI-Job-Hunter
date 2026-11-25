@@ -64,3 +64,35 @@ def session_scope():
         raise
     finally:
         session.close()
+
+
+def try_lock(name: str, seconds: int) -> bool:
+    """Take a lease-style lock shared by every process using this database.
+    Plain UPDATE/INSERT, so it works through Neon's connection pooler too."""
+    import time
+
+    from sqlalchemy import text
+    from sqlalchemy.exc import IntegrityError
+
+    now = time.time()
+    params = {"n": name, "u": now + seconds, "now": now}
+    with engine.begin() as conn:
+        taken = conn.execute(text(
+            "UPDATE run_locks SET locked_until = :u WHERE name = :n AND locked_until < :now"), params).rowcount
+        if taken:
+            return True
+        if conn.execute(text("SELECT 1 FROM run_locks WHERE name = :n"), params).first():
+            return False  # someone else holds it
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("INSERT INTO run_locks (name, locked_until) VALUES (:n, :u)"), params)
+        return True
+    except IntegrityError:
+        return False  # another process inserted it first
+
+
+def release_lock(name: str) -> None:
+    from sqlalchemy import text
+
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE run_locks SET locked_until = 0 WHERE name = :n"), {"n": name})
