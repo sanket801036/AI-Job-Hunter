@@ -169,3 +169,27 @@ class InterviewRound(Base):
     notes: Mapped[str] = mapped_column(Text, default="")
 
     application: Mapped[Application] = relationship(back_populates="rounds")
+
+
+class Company(Base):
+    """My notes about a company, and whether the bot should ignore it."""
+
+    __tablename__ = "companies"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    # direct employer, staffing / consulting, freelance marketplace, job board / aggregator
+    category: Mapped[str] = mapped_column(String(30), default="")
+    website: Mapped[str] = mapped_column(String(500), default="")
+    blocked: Mapped[bool] = mapped_column(Boolean, default=False)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
+
+
+class Setting(Base):
+    """Small key/value store for things edited from the dashboard (e.g. extra skip words)."""
+
+    __tablename__ = "settings"
+
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[dict | list | str] = mapped_column(JSON)

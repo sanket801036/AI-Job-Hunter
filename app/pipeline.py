@@ -15,8 +15,9 @@ import time
 import httpx
 from sqlalchemy import select
 
-from app.config import get_profile, get_settings
+from app.config import get_settings
 from app.db import init_db, session_scope
+from app.filters import effective_profile
 from app.judge import judge, pre_filter
 from app.linkedin.detail import fetch_detail
 from app.linkedin.search import HEADERS, dedupe, search
@@ -92,7 +93,6 @@ def process_job(session, job: Job, client: httpx.Client, profile: dict) -> str:
 
 def run_once() -> dict:
     init_db()
-    profile = get_profile()
     stats = {"found": 0, "judged": 0, "eligible": 0, "notified": 0, "filtered": 0, "errors": 0}
     with httpx.Client(headers=HEADERS, timeout=20, follow_redirects=True) as client:
         with session_scope() as session:
@@ -100,6 +100,7 @@ def run_once() -> dict:
             stats["found"] = collect_new_jobs(session, client)
 
         with session_scope() as session:
+            profile = effective_profile(session)  # profile.yaml + blocked companies from the dashboard
             pending = session.scalars(
                 select(Job).where(Job.status == "new").order_by(Job.found_at.desc()).limit(MAX_NEW_JOBS_PER_RUN)
             ).all()

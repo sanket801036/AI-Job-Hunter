@@ -60,6 +60,6 @@ def get_db():
         db.close()
 
 
-def render(request: Request, name: str, **ctx):
+def render(request: Request, template: str, **ctx):
     ctx.setdefault("active", "")
-    return templates.TemplateResponse(request, name, ctx)
+    return templates.TemplateResponse(request, template, ctx)

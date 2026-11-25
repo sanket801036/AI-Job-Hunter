@@ -140,3 +140,24 @@ def test_manual_application(client):
                                            "platform": "Company site"})
     assert r.status_code == 200 and "Infor" in r.text and "Python, AWS" in r.text
     assert "Infor" in client.get("/applications").text
+
+
+def test_company_notes_block_and_settings(client):
+    from app.filters import effective_profile
+    from app.models import Company
+
+    login(client)
+    r = client.post("/companies/Krista", data={"category": "direct", "notes": "3 rounds, system design",
+                                               "website": "https://krista.ai"})
+    assert r.status_code == 200 and "3 rounds, system design" in r.text
+    assert "Krista" in client.get("/companies").text
+
+    client.post("/settings/block", data={"name": "JunkJobs"})
+    client.post("/settings/words", data={"words": "Intern, SAP"})
+    assert "JunkJobs" in client.get("/settings").text
+    with session_scope() as s:
+        prof = effective_profile(s)
+        assert "JunkJobs" in prof["skip_companies"] and "SAP" in prof["titles_skip"]
+    client.post("/settings/unblock", data={"name": "JunkJobs"})
+    with session_scope() as s:
+        assert s.query(Company).filter_by(name="JunkJobs").one().blocked is False

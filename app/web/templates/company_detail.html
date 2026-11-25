@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ name }}{% endblock %}
+{% block content %}
+<a href="/companies" class="text-sm text-indigo-600">&larr; Companies</a>
+<div class="mt-2 flex items-center gap-3">
+  <h1 class="text-2xl font-bold">{{ name }}</h1>
+  {% if c and c.blocked %}<span class="rounded-full bg-red-50 px-2 py-0.5 text-xs text-red-700">blocked: the bot skips this company</span>{% endif %}
+</div>
+{% if request.query_params.get("saved") %}<p class="mt-3 rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-700">Saved.</p>{% endif %}
+
+<div class="mt-5 grid gap-4 lg:grid-cols-3">
+  <form method="post" action="/companies/{{ name | urlencode }}" class="space-y-3 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm">
+    <h2 class="font-semibold">About this company</h2>
+    <label class="block">Category<select name="category" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2">
+      {% for k, label in categories %}<option value="{{ k }}" {% if c and c.category == k %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label class="block">Website<input name="website" value="{{ c.website if c else '' }}" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"></label>
+    <label class="block">Notes<textarea name="notes" rows="8" placeholder="Interview process, salary range, people, what to prepare..." class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2">{{ c.notes if c else '' }}</textarea></label>
+    <label class="flex items-center gap-2"><input type="checkbox" name="blocked" {% if c and c.blocked %}checked{% endif %}> Block: never notify me about this company</label>
+    <button class="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 font-semibold text-white">Save</button>
+  </form>
+
+  <div class="space-y-4 lg:col-span-2">
+    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm">
+      <h2 class="font-semibold">Applications</h2>
+      <div class="mt-2 divide-y divide-slate-100">
+        {% for a in apps %}
+        <a href="/applications/{{ a.id }}" class="flex justify-between py-2 hover:text-indigo-700">
+          <span>{{ a.job.title }}</span><span class="text-slate-500">{{ a.applied_at | ist("%d %b %Y") }} · {{ a.stage }}</span></a>
+        {% else %}<p class="py-2 text-slate-500">Not applied here yet.</p>{% endfor %}
+      </div>
+    </div>
+
+    <div id="people" class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm">
+      <h2 class="font-semibold">People I contacted</h2>
+      <div class="mt-2 space-y-3">
+        {% for ct in contacts %}
+        <form method="post" action="/contacts/{{ ct.id }}" class="rounded-xl bg-slate-50 p-3">
+          <div class="flex justify-between">
+            <span class="font-medium">{% if ct.linkedin_url %}<a href="{{ ct.linkedin_url }}" target="_blank" rel="noopener" class="text-indigo-600">{{ ct.name }}</a>{% else %}{{ ct.name }}{% endif %}</span>
+            <span class="text-xs text-slate-500">{% for r in ct.referrals %}{{ r.status.replace("_", " ") }} ({{ r.sent_at | ist("%d %b") }}){% if not loop.last %}, {% endif %}{% endfor %}</span>
+          </div>
+          <div class="mt-2 grid gap-2 md:grid-cols-3">
+            <input name="role" value="{{ ct.role }}" placeholder="Role" class="rounded-lg border border-slate-300 px-2 py-1 text-xs">
+            <input name="linkedin_url" value="{{ ct.linkedin_url }}" placeholder="LinkedIn URL" class="rounded-lg border border-slate-300 px-2 py-1 text-xs">
+            <div class="flex gap-2"><input name="notes" value="{{ ct.notes }}" placeholder="Notes" class="flex-1 rounded-lg border border-slate-300 px-2 py-1 text-xs">
+              <button class="rounded-lg bg-slate-200 px-2 text-xs">Save</button></div>
+          </div>
+        </form>
+        {% else %}<p class="text-slate-500">Nobody yet. Add referral asks from an application page.</p>{% endfor %}
+      </div>
+    </div>
+
+    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm">
+      <h2 class="font-semibold">Jobs the bot found here</h2>
+      <div class="mt-2 divide-y divide-slate-100">
+        {% for j in jobs %}
+        <a href="/jobs/{{ j.id }}" class="flex justify-between py-2 hover:text-indigo-700">
+          <span>{{ j.title }}</span><span class="text-slate-500">{{ j.found_at | ist("%d %b") }} · {{ j.status.replace("_", " ") }}{% if j.evaluation and j.evaluation.provider != "rule" %} · {{ j.evaluation.match_score }}%{% endif %}</span></a>
+        {% else %}<p class="py-2 text-slate-500">None.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

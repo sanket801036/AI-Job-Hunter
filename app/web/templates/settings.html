@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-2xl font-bold">Settings</h1>
+{% if msg %}<p class="mt-4 rounded-xl {% if 'fail' in msg %}bg-red-50 text-red-700{% else %}bg-emerald-50 text-emerald-700{% endif %} px-4 py-2 text-sm">{{ msg }}</p>{% endif %}
+
+<div class="mt-6 grid gap-4 lg:grid-cols-2">
+  <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm">
+    <h2 class="font-semibold">Blocked companies</h2>
+    <p class="text-slate-500">The bot never notifies me about these.</p>
+    <form method="post" action="/settings/block" class="mt-3 flex gap-2">
+      <input name="name" required placeholder="Company name" class="flex-1 rounded-xl border border-slate-300 px-3 py-2">
+      <button class="rounded-xl bg-red-600 px-4 py-2 font-semibold text-white">Block</button>
+    </form>
+    <div class="mt-3 flex flex-wrap gap-2">
+      {% for c in blocked %}
+      <form method="post" action="/settings/unblock" class="flex items-center gap-1 rounded-full bg-red-50 pl-3 pr-1 py-0.5 text-red-700">
+        <input type="hidden" name="name" value="{{ c.name }}">{{ c.name }}
+        <button title="Unblock" class="rounded-full px-1.5 hover:bg-red-100">&times;</button></form>
+      {% endfor %}
+      {% for n in yaml_companies %}<span class="rounded-full bg-slate-100 px-3 py-0.5 text-slate-600" title="from profile.yaml">{{ n }}</span>{% endfor %}
+    </div>
+  </div>
+
+  <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm">
+    <h2 class="font-semibold">Skip job titles containing</h2>
+    <p class="text-slate-500">Whole words, checked before any LLM call.</p>
+    <div class="mt-3 flex flex-wrap gap-2">{% for w in yaml_words %}<span class="rounded-full bg-slate-100 px-3 py-0.5 text-slate-600" title="from profile.yaml">{{ w }}</span>{% endfor %}</div>
+    <form method="post" action="/settings/words" class="mt-3 flex gap-2">
+      <input name="words" value="{{ extra_words | join(', ') }}" placeholder="Extra words, comma separated (e.g. Intern, SAP)" class="flex-1 rounded-xl border border-slate-300 px-3 py-2">
+      <button class="rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white">Save</button>
+    </form>
+  </div>
+
+  <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm">
+    <h2 class="font-semibold">Telegram</h2>
+    <p class="mt-1">{% if telegram_ok %}<span class="text-emerald-700">Connected</span>{% else %}<span class="text-red-700">Bot token or chat id missing</span>{% endif %}</p>
+    <form method="post" action="/settings/test-telegram" class="mt-3"><button class="rounded-xl bg-slate-100 px-4 py-2 font-semibold hover:bg-slate-200">Send test message</button></form>
+  </div>
+
+  <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm">
+    <h2 class="font-semibold">LLM providers (tried in this order)</h2>
+    <ol class="mt-2 space-y-1">
+      {% for name, has_key in providers %}<li>{{ loop.index }}. {{ name }} {% if has_key %}<span class="text-emerald-700">key set</span>{% else %}<span class="text-slate-400">no key, skipped</span>{% endif %}</li>{% endfor %}
+    </ol>
+    <form method="post" action="/settings/test-llm" class="mt-3"><button class="rounded-xl bg-slate-100 px-4 py-2 font-semibold hover:bg-slate-200">Test LLM</button></form>
+  </div>
+</div>
+<p class="mt-6 text-xs text-slate-500">API keys are read from environment variables and are never shown here.</p>
+{% endblock %}

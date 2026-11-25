@@ -37,7 +37,7 @@ def test_run_once_end_to_end():
          patch.object(pipeline, "fetch_detail", return_value=JobDetail(description="JD", easy_apply=True)), \
          patch.object(pipeline, "judge", side_effect=fake_judge), \
          patch.object(pipeline, "send_job", return_value=True) as sent, \
-         patch.object(pipeline, "get_profile", return_value=PROFILE), \
+         patch("app.filters.get_profile", return_value=PROFILE), \
          patch.object(pipeline.time, "sleep"):
         stats = pipeline.run_once()
         assert stats["found"] == 3
