@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log in · AI Job Hunter</title>
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+</head>
+<body class="min-h-screen bg-slate-900 flex items-center justify-center px-4">
+  <form method="post" action="/login" class="w-full max-w-sm rounded-2xl bg-white p-8 shadow-xl">
+    <h1 class="text-xl font-bold text-slate-900">AI Job Hunter</h1>
+    <p class="mt-1 text-sm text-slate-500">Enter the dashboard password.</p>
+    {% if not configured %}
+      <p class="mt-4 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">DASHBOARD_PASSWORD is not set, so login is disabled.</p>
+    {% endif %}
+    {% if error %}
+      <p class="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">Wrong password.</p>
+    {% endif %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <input type="password" name="password" autofocus required placeholder="Password"
+           class="mt-5 w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none">
+    <button class="mt-4 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-3 py-2 font-semibold text-white">Log in</button>
+  </form>
+</body>
+</html>

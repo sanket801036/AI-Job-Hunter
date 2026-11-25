@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}AI Job Hunter{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; }
+    .jd { white-space: pre-wrap; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+<div class="flex min-h-screen">
+  <aside class="hidden md:flex w-60 flex-col bg-slate-900 text-slate-300">
+    <div class="px-5 py-5 border-b border-slate-800">
+      <div class="text-white font-bold text-lg">AI Job Hunter</div>
+      <div class="text-xs text-slate-500">find · apply · track</div>
+    </div>
+    {% set nav = [
+      ("overview", "/", "Overview"),
+      ("jobs", "/jobs", "Jobs"),
+      ("applications", "/applications", "Applications"),
+      ("companies", "/companies", "Companies"),
+      ("profiles", "/profiles", "Search profiles"),
+      ("resumes", "/resumes", "Resumes"),
+      ("settings", "/settings", "Settings"),
+    ] %}
+    <nav class="flex-1 px-3 py-4 space-y-1">
+      {% for key, href, label in nav %}
+      <a href="{{ href }}" class="block rounded-xl px-3 py-2 text-sm font-medium
+         {% if active == key %}bg-gradient-to-r from-indigo-600 to-violet-600 text-white{% else %}hover:bg-slate-800 hover:text-white{% endif %}">{{ label }}</a>
+      {% endfor %}
+    </nav>
+    <form method="post" action="/logout" class="px-3 py-4 border-t border-slate-800">
+      <button class="w-full rounded-xl px-3 py-2 text-left text-sm text-slate-400 hover:bg-slate-800 hover:text-white">Log out</button>
+    </form>
+  </aside>
+
+  <main class="flex-1 min-w-0">
+    <div class="md:hidden flex gap-3 overflow-x-auto bg-slate-900 px-4 py-3 text-sm text-slate-300">
+      <a href="/">Overview</a><a href="/jobs">Jobs</a><a href="/applications">Applications</a>
+      <a href="/companies">Companies</a><a href="/profiles">Profiles</a><a href="/resumes">Resumes</a><a href="/settings">Settings</a>
+    </div>
+    <div class="mx-auto max-w-6xl px-4 py-6 md:px-8">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+</body>
+</html>

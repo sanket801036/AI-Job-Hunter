@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-2xl font-bold">Jobs</h1>
+
+<div class="mt-4 flex flex-wrap gap-2">
+  {% for key, label in [("matches","Matches"),("saved","Saved"),("applied","Applied"),("skipped","Skipped"),("not_eligible","Not eligible"),("all","All")] %}
+  <a href="/jobs?tab={{ key }}" class="rounded-full px-3 py-1 text-sm {% if tab == key %}bg-indigo-600 text-white{% else %}bg-white ring-1 ring-slate-200{% endif %}">
+    {{ label }} <span class="ml-1 rounded-full {% if tab == key %}bg-white/20{% else %}bg-slate-100{% endif %} px-1.5 text-xs">{{ tab_counts[key] }}</span>
+  </a>
+  {% endfor %}
+</div>
+
+<form class="mt-4 grid gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 md:grid-cols-5">
+  <input type="hidden" name="tab" value="{{ tab }}">
+  <input name="q" value="{{ q }}" placeholder="Title, company or location" class="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2">
+  <select name="easy" class="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+    <option value="">Any apply type</option>
+    <option value="1" {% if easy == "1" %}selected{% endif %}>Easy Apply</option>
+    <option value="0" {% if easy == "0" %}selected{% endif %}>Company site</option>
+  </select>
+  <select name="profile" class="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+    <option value="">All profiles</option>
+    {% for p in profiles %}<option value="{{ p.id }}" {% if profile == p.id|string %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+  </select>
+  <div class="flex gap-2">
+    <select name="min_score" class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm">
+      {% for s in [0, 50, 60, 70, 80] %}<option value="{{ s }}" {% if min_score == s %}selected{% endif %}>{% if s %}{{ s }}%+{% else %}Any match{% endif %}</option>{% endfor %}
+    </select>
+    <button class="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Filter</button>
+  </div>
+</form>
+
+<div class="mt-4 space-y-3">
+  {% for job in jobs %}{% include "_job_row.html" %}
+  {% else %}<p class="text-sm text-slate-500">Nothing here.</p>{% endfor %}
+</div>
+{% endblock %}
