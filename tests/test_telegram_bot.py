@@ -48,7 +48,7 @@ def test_run_now_starts_one_scan(monkeypatch):
     h = {"X-Telegram-Bot-Api-Secret-Token": "s3cret"}
     client.post("/telegram/webhook", json=_update(111, "run now"), headers=h)
     client.post("/telegram/webhook", json=_update(111, "run now"), headers=h)
-    assert "Searching" in sent[0] and "running right now" in sent[1]
+    assert "Searching" in sent[0] and "Could not start" in sent[1]
 
 
 def test_cron_needs_the_key(monkeypatch):
@@ -70,3 +70,20 @@ def test_scan_lock_is_exclusive():
     release_lock("test")
     assert try_lock("test", 60) is True
     release_lock("test")
+
+
+def test_scan_goes_to_github_when_token_set(monkeypatch):
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "github_token", "tok")
+    calls = []
+
+    class R:
+        status_code = 204
+        text = ""
+
+    monkeypatch.setattr(telegram_bot.httpx, "post", lambda url, **k: calls.append((url, k["json"])) or R())
+    assert telegram_bot.start_scan(notify=True) is True
+    url, body = calls[0]
+    assert url.endswith("/actions/workflows/scan.yml/dispatches")
+    assert body["inputs"] == {"source": "telegram", "notify_summary": "true"}

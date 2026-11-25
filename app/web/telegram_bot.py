@@ -4,6 +4,8 @@ Telegram calls POST /telegram/webhook for every message sent to the bot. Only my
 chat id is answered, and the request must carry the secret set in setWebhook.
 """
 import hmac
+
+import httpx
 import logging
 import threading
 from datetime import datetime, timedelta, timezone
@@ -48,14 +50,9 @@ def _scan(notify: bool) -> None:
         stats = run_once(source="telegram" if notify else "cron")
         if not notify:
             return
-        if stats.get("skipped"):
-            send_message("Another scan was already running, so its results will come from that one.")
-            return
-        send_message(
-            f"Scan finished: {stats['found']} new jobs, {stats['judged']} checked, "
-            f"{stats['notified']} sent to you."
-            + (f" {stats['errors']} errors." if stats.get("errors") else "")
-        )
+        from app.pipeline import summary_text
+
+        send_message(summary_text(stats))
     except Exception:
         log.exception("scan failed")
         if notify:
@@ -64,9 +61,33 @@ def _scan(notify: bool) -> None:
         _run_lock.release()
 
 
+def dispatch_to_github(notify: bool) -> bool:
+    """Ask GitHub Actions to run the scan workflow. True if GitHub accepted it."""
+    s = get_settings()
+    url = f"https://api.github.com/repos/{s.github_repo}/actions/workflows/{s.github_workflow}/dispatches"
+    body = {"ref": "main", "inputs": {"source": "telegram" if notify else "cron",
+                                      "notify_summary": "true" if notify else "false"}}
+    try:
+        r = httpx.post(url, json=body, timeout=20, headers={
+            "Authorization": f"Bearer {s.github_token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        })
+    except httpx.HTTPError as e:
+        log.warning("GitHub dispatch failed: %s", e)
+        return False
+    if r.status_code != 204:
+        log.warning("GitHub dispatch returned HTTP %d: %s", r.status_code, r.text[:200])
+        return False
+    return True
+
+
 def start_scan(notify: bool = True) -> bool:
-    """Start a scan in a background thread. False if one is already running here.
-    notify=False is for the 10-minute timer: only new jobs are messaged, no summary."""
+    """Start a scan: on GitHub Actions when a token is set, otherwise in a background
+    thread here. False if it could not start (already running, or GitHub refused).
+    notify=False is for the timer: only new jobs are messaged, no summary."""
+    if get_settings().github_token:
+        return dispatch_to_github(notify)
     if not _run_lock.acquire(blocking=False):
         return False
     threading.Thread(target=_scan, args=(notify,), daemon=True).start()
@@ -131,7 +152,8 @@ async def telegram_webhook(request: Request):
         if start_scan():
             send_message("Searching LinkedIn now. Matches will arrive in a few minutes.")
         else:
-            send_message("The automatic scan is running right now. Any new matches will arrive in a few minutes.")
+            send_message("Could not start a scan right now (one may already be running). "
+                         "Any new matches will arrive in a few minutes.")
     elif cmd == "status":
         send_message(status_text())
     else:

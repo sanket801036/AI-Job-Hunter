@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
 
+    # GitHub Actions: when a token is set, the Render server asks GitHub to run the scan
+    # (LinkedIn answers GitHub runners but blocks some cloud hosts)
+    github_token: str = ""
+    github_repo: str = "sanket801036/AI-Job-Hunter"
+    github_workflow: str = "scan.yml"
+
     # Dashboard
     dashboard_password: str = ""
     webhook_secret: str = ""
