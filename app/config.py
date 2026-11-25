@@ -26,8 +26,11 @@ class Settings(BaseSettings):
     gemini_api_key_2: str = ""
     gemini_model: str = "gemini-2.5-flash"
     mistral_api_key: str = ""
+    mistral_model: str = "mistral-small-latest"
     cerebras_api_key: str = ""
+    cerebras_model: str = "gpt-oss-120b"
     groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
 
     # Telegram
     telegram_bot_token: str = ""
