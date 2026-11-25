@@ -11,3 +11,5 @@ fastapi==0.115.*
 uvicorn==0.30.*
 Jinja2==3.1.*
 python-multipart==0.0.20
+pypdf==7.*
+python-docx==1.*

@@ -1,0 +1,18 @@
+<form method="post" action="/profiles" class="mt-3 space-y-3 text-sm">
+  <input type="hidden" name="profile_id" value="{{ p.id if p else '' }}">
+  <input name="name" required value="{{ p.name if p else '' }}" placeholder="Profile name" class="w-full rounded-xl border border-slate-300 px-3 py-2">
+  <input name="keywords" required value="{{ p.keywords if p else '' }}" placeholder="Keywords, comma separated" class="w-full rounded-xl border border-slate-300 px-3 py-2">
+  <div class="flex flex-wrap items-center gap-3">
+    <label class="flex items-center gap-2">Last
+      <input type="number" name="hours" min="1" max="72" value="{{ p.hours if p else 6 }}" class="w-16 rounded-xl border border-slate-300 px-2 py-1"> hours</label>
+    {% set chosen = (p.work_types if p else "1,2,3").split(",") %}
+    {% for k, label in work_types.items() %}
+    <label class="flex items-center gap-1"><input type="checkbox" name="work_types" value="{{ k }}" {% if k in chosen %}checked{% endif %}> {{ label }}</label>
+    {% endfor %}
+  </div>
+  <select name="resume_id" class="w-full rounded-xl border border-slate-300 px-3 py-2">
+    <option value="">No resume</option>
+    {% for r in resumes %}<option value="{{ r.id }}" {% if p and p.resume_id == r.id %}selected{% endif %}>{{ r.label }} ({{ r.filename }})</option>{% endfor %}
+  </select>
+  <button class="rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white">Save</button>
+</form>

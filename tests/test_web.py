@@ -59,3 +59,46 @@ def test_jobs_feed_and_detail(client):
     assert "Build RAG agents." in r.text and "Open on LinkedIn" in r.text
     client.post(f"/jobs/{job_id}/status", data={"status": "saved"})
     assert "AI Engineer" in client.get("/jobs?tab=saved").text
+
+
+def _docx_bytes(text: str) -> bytes:
+    import io
+
+    from docx import Document
+
+    doc = Document()
+    doc.add_paragraph(text)
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+def test_resume_upload_and_profile(client):
+    from app.models import Resume, SearchProfile
+
+    login(client)
+    r = client.post("/resumes", data={"label": "Full Stack"},
+                    files={"file": ("cv.docx", _docx_bytes("Python Django React"), "application/octet-stream")})
+    assert r.status_code == 200 and "cv.docx" in r.text
+    with session_scope() as s:
+        cv = s.query(Resume).one()
+        assert "Django" in cv.text
+        cv_id = cv.id
+
+    client.post("/profiles", data={"name": "Full Stack", "keywords": "Full Stack Developer",
+                                   "hours": "12", "work_types": ["2", "3"], "resume_id": str(cv_id)})
+    with session_scope() as s:
+        p = s.query(SearchProfile).filter_by(name="Full Stack").one()
+        assert p.work_types == "2,3" and p.hours == 12 and p.resume_id == cv_id
+        pid = p.id
+    client.post(f"/profiles/{pid}/toggle")
+    with session_scope() as s:
+        assert s.get(SearchProfile, pid).active is False
+    assert "Full Stack" in client.get("/profiles").text
+    assert client.get(f"/resumes/{cv_id}/download").content[:2] == b"PK"
+
+
+def test_bad_resume_file_is_rejected(client):
+    login(client)
+    r = client.post("/resumes", data={"label": "x"}, files={"file": ("cv.txt", b"hello", "text/plain")})
+    assert "Upload a PDF or DOCX file" in r.text

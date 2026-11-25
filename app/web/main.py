@@ -1,22 +1,16 @@
 """Dashboard: jobs the bot found, my applications, referrals, companies, settings."""
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.db import SessionLocal, init_db
+from app.db import init_db
 from app.models import Application, Evaluation, Job, SearchProfile
-from app.web import auth
-
-BASE = Path(__file__).parent
-templates = Jinja2Templates(directory=BASE / "templates")
-
-
+from app.web import auth, profiles
+from app.web.common import get_db, render, templates
 
 @asynccontextmanager
 async def lifespan(_app):
@@ -25,33 +19,7 @@ async def lifespan(_app):
 
 
 app = FastAPI(title="AI Job Hunter", docs_url=None, redoc_url=None, lifespan=lifespan)
-
-IST = timezone(timedelta(hours=5, minutes=30))
-
-
-def ist(dt: datetime | None, fmt: str = "%d %b %Y, %I:%M %p") -> str:
-    if dt is None:
-        return ""
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(IST).strftime(fmt)
-
-
-def ago(dt: datetime | None) -> str:
-    if dt is None:
-        return ""
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    mins = int((datetime.now(timezone.utc) - dt).total_seconds() // 60)
-    if mins < 60:
-        return f"{max(mins, 0)} min ago"
-    if mins < 24 * 60:
-        return f"{mins // 60} h ago"
-    return f"{mins // (24 * 60)} d ago"
-
-
-templates.env.filters["ist"] = ist
-templates.env.filters["ago"] = ago
+app.include_router(profiles.router)
 
 PUBLIC_PATHS = {"/login", "/healthz"}
 
@@ -62,19 +30,6 @@ async def require_login(request: Request, call_next):
             and not auth.is_logged_in(request):
         return RedirectResponse(f"/login?next={request.url.path}", status_code=303)
     return await call_next(request)
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-def render(request: Request, name: str, **ctx):
-    ctx.setdefault("active", "")
-    return templates.TemplateResponse(request, name, ctx)
 
 
 # ---------- Login ----------
