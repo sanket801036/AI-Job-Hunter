@@ -1,4 +1,4 @@
-﻿# AI Job Hunter: Plan
+# AI Job Hunter: Plan
 
 Finds new AI jobs on LinkedIn every few minutes, checks with an LLM whether I am eligible,
 sends the good ones to Telegram, and tracks everything after that (application, referrals,
@@ -94,7 +94,11 @@ Daily 9 PM digest: jobs found today, applied, follow-ups due.
    Manager/HR -> Offer / Rejected / Ghosted, with dates and notes per round.
 5. **Follow-ups**: reminders: referral not answered in 3 days, no update in 7 days,
    interview tomorrow. Sent in the Telegram digest.
-6. **Settings & connections**: one page for Telegram (bot token status, chat id, test button),
+6. **Search profiles & resumes**: several searches side by side, e.g. "AI Engineer" and
+   "Full Stack", each with its own keywords, hours window, work type and on/off switch.
+   Upload a resume per profile (PDF/DOCX); its text is what the LLM compares the JD against,
+   and the application tracker records which resume was sent.
+7. **Settings & connections**: one page for Telegram (bot token status, chat id, test button),
    search config (keywords, hours window, work type, interval), profile, LLM providers with a
    "test" button. Keys are never shown, only "connected / failing".
 8. **Stats**: jobs found per day, eligible %, applied, referral reply rate, interview rate.
