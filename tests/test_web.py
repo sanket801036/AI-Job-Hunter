@@ -204,3 +204,12 @@ def test_fetch_now_page(client):
     assert search.call_args.kwargs["under_10"] is True
     assert search.call_args.kwargs["hours"] == 1
     assert "1 new job found" in r.text and "GenAI Engineer" in r.text and "checking..." in r.text
+
+
+def test_new_profile_from_fetch_page(client):
+    r = client.post("/profiles", data={"name": "Full Stack", "keywords": "Python Full Stack Developer",
+                                       "hours": "1", "work_types": ["2", "3"], "under_10": "on", "next": "/fetch"},
+                    follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/fetch"
+    page = client.get("/fetch").text
+    assert "Full Stack" in page and "+ New profile" in page

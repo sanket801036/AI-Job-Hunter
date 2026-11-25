@@ -63,6 +63,7 @@ def save_profile(
     work_types: list[str] = Form([]),
     under_10: str = Form(""),
     resume_id: str = Form(""),
+    next: str = Form("/profiles"),
     db: Session = Depends(get_db),
 ):
     name, keywords = name.strip(), keywords.strip()
@@ -80,7 +81,8 @@ def save_profile(
     p.under_10 = under_10 == "on"
     p.resume_id = int(resume_id) if resume_id.isdigit() else None
     db.commit()
-    return RedirectResponse("/profiles", status_code=303)
+    target = next if next in ("/profiles", "/fetch") else "/profiles"
+    return RedirectResponse(target, status_code=303)
 
 
 @router.post("/profiles/{profile_id}/toggle")

@@ -10,6 +10,15 @@
     {% for p in profiles %}
     <label class="mt-1 flex items-center gap-2"><input type="checkbox" name="profile_ids" value="{{ p.id }}" {% if p.active %}checked{% endif %}> {{ p.name }}</label>
     {% else %}<p class="text-slate-500">No profiles yet.</p>{% endfor %}
+    <details class="mt-3" {% if not profiles %}open{% endif %}>
+      <summary class="cursor-pointer text-indigo-600">+ New profile</summary>
+      <p class="mt-1 text-xs text-slate-500">Saved with the filters on the right, then searched every few minutes.</p>
+      <input type="hidden" name="next" value="/fetch">
+      <input name="name" placeholder="Profile name, e.g. Full Stack" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2">
+      <input name="keywords" placeholder="Keywords, comma separated" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2">
+      <button formaction="/profiles" class="mt-2 w-full rounded-xl bg-indigo-600 px-3 py-2 font-semibold text-white"
+        onclick="this.form.elements['name'].required = true; this.form.elements['keywords'].required = true;">Save profile</button>
+    </details>
   </div>
   <label class="block"><span class="font-medium">Posted in</span>
     <select name="hours" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2">
@@ -24,7 +33,7 @@
   <div>
     <div class="font-medium">Applicants</div>
     <label class="mt-1 flex items-center gap-2"><input type="checkbox" name="under_10" checked> Under 10 applicants only</label>
-    <button class="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-2 font-semibold text-white" onclick="this.textContent='Searching LinkedIn...'">Fetch now</button>
+    <button class="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-2 font-semibold text-white" onclick="this.form.elements['name'].required = false; this.form.elements['keywords'].required = false; this.textContent='Searching LinkedIn...'">Fetch now</button>
   </div>
 </form>
 
