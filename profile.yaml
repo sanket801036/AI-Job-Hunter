@@ -32,11 +32,17 @@ skills:
   - AI Agents
   - MCP
   - LLM evaluation
+  - MLflow
+  - Langfuse
+  - Prompt engineering
+  - Tool calling
   - Guardrails
   - FastAPI
   - Django
   - Flask
   - PostgreSQL
+  - Redis
+  - SQL
   - pgvector
   - FAISS
   - Docker
@@ -47,6 +53,9 @@ skills:
   - OCR
   - CLIP
   - YOLOv8
+  - Hugging Face
+  - Selenium
+  - Pandas
 
 locations_ok:
   - Pune
