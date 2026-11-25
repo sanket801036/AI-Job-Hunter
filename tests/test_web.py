@@ -102,3 +102,41 @@ def test_bad_resume_file_is_rejected(client):
     login(client)
     r = client.post("/resumes", data={"label": "x"}, files={"file": ("cv.txt", b"hello", "text/plain")})
     assert "Upload a PDF or DOCX file" in r.text
+
+
+def test_application_referral_and_rounds(client):
+    from app.models import Application, Referral
+
+    login(client)
+    with session_scope() as s:
+        job_id = s.query(Job).one().id
+    r = client.post("/applications", data={"job_id": str(job_id), "applied_at": "2026-11-25T14:30",
+                                           "platform": "Easy Apply", "ctc_told": "10.5 LPA", "notes": "via bot"})
+    assert r.status_code == 200 and "Applied 25 Nov 2026, 02:30 PM via Easy Apply" in r.text
+    with session_scope() as s:
+        a = s.query(Application).one()
+        app_id = a.id
+        assert a.job.status == "applied"
+
+    client.post(f"/applications/{app_id}/referrals", data={"name": "Dattaraj", "role": "Data Scientist",
+                                                           "linkedin_url": "https://linkedin.com/in/x",
+                                                           "message": "Hi, could you refer me?"})
+    client.post(f"/applications/{app_id}/rounds", data={"name": "Tech 1", "scheduled_at": "2026-11-28T11:00"})
+    client.post(f"/applications/{app_id}", data={"stage": "tech_1", "description": "New JD text", "notes": "n"})
+    page = client.get(f"/applications/{app_id}").text
+    assert "Dattaraj" in page and "Tech 1" in page and "New JD text" in page
+    with session_scope() as s:
+        ref_id = s.query(Referral).one().id
+    client.post(f"/referrals/{ref_id}", data={"status": "referred"})
+    with session_scope() as s:
+        assert s.get(Referral, ref_id).status == "referred"
+    assert "Krista" in client.get("/applications?stage=active").text
+
+
+def test_manual_application(client):
+    login(client)
+    r = client.post("/applications", data={"company": "Infor", "title": "Senior Full Stack Engineer",
+                                           "link": "https://infor.com/jobs/1", "description": "Python, AWS",
+                                           "platform": "Company site"})
+    assert r.status_code == 200 and "Infor" in r.text and "Python, AWS" in r.text
+    assert "Infor" in client.get("/applications").text

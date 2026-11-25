@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.db import init_db
 from app.models import Application, Evaluation, Job, SearchProfile
-from app.web import auth, profiles
+from app.web import auth, profiles, tracker
 from app.web.common import get_db, render, templates
 
 @asynccontextmanager
@@ -20,6 +20,7 @@ async def lifespan(_app):
 
 app = FastAPI(title="AI Job Hunter", docs_url=None, redoc_url=None, lifespan=lifespan)
 app.include_router(profiles.router)
+app.include_router(tracker.router)
 
 PUBLIC_PATHS = {"/login", "/healthz"}
 
