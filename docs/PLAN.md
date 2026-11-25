@@ -1,4 +1,4 @@
-# AI Job Hunter: Plan
+﻿# AI Job Hunter: Plan
 
 Finds new AI jobs on LinkedIn every few minutes, checks with an LLM whether I am eligible,
 sends the good ones to Telegram, and tracks everything after that (application, referrals,
@@ -8,17 +8,17 @@ interview stages) on one dashboard.
 
 ```
  GitHub Actions (cron, every 10 min)               Render (free web service)
- ┌──────────────────────────────────┐              ┌───────────────────────────────┐
- │ fetcher  -> LinkedIn guest API   │              │ FastAPI dashboard             │
- │ parser   -> JD, apply type, link │   Neon       │  - Jobs feed + full JD        │
- │ filter   -> AI-related?          │──Postgres───▶│  - Applications tracker       │
- │ judge    -> LLM eligibility JSON │   (free)     │  - Referrals / contacts       │
- │             (provider fallback)  │◀─────────────│  - Interview pipeline         │
- │ notifier -> Telegram message     │              │  - Settings + health          │
- └──────────────────────────────────┘              └───────────────────────────────┘
-                     │                                          ▲
-                     ▼                                          │
-              Telegram bot  ── buttons: Applied / Skip ─────────┘ (webhook)
+ â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+ â”‚ fetcher  -> LinkedIn guest API   â”‚              â”‚ FastAPI dashboard             â”‚
+ â”‚ parser   -> JD, apply type, link â”‚   Neon       â”‚  - Jobs feed + full JD        â”‚
+ â”‚ filter   -> AI-related?          â”‚â”€â”€Postgresâ”€â”€â”€â–¶â”‚  - Applications tracker       â”‚
+ â”‚ judge    -> LLM eligibility JSON â”‚   (free)     â”‚  - Referrals / contacts       â”‚
+ â”‚             (provider fallback)  â”‚â—€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”‚  - Interview pipeline         â”‚
+ â”‚ notifier -> Telegram message     â”‚              â”‚  - Settings + health          â”‚
+ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜              â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                     â”‚                                          â–²
+                     â–¼                                          â”‚
+              Telegram bot  â”€â”€ buttons: Applied / Skip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ (webhook)
 ```
 
 Why this split:
@@ -71,9 +71,9 @@ Provider fallback: `AI_PROVIDERS=gemini,gemini2,mistral,cerebras,groq`. On error
 ## 4. Telegram notification
 
 ```
-🟢 AI Engineer - Krista (Pune, On-site)
+ðŸŸ¢ AI Engineer - Krista (Pune, On-site)
 Match 82% | 3-5 yrs | 1 applicant | 7 min ago
-✅ LangGraph, RAG, MCP, FastAPI   ❌ Kubernetes
+âœ… LangGraph, RAG, MCP, FastAPI   âŒ Kubernetes
 Apply: Easy Apply   (or: Company site -> <link>)
 LinkedIn: <job link>
 Dashboard: <job page link>
@@ -97,7 +97,7 @@ Daily 9 PM digest: jobs found today, applied, follow-ups due.
 6. **Settings & connections**: one page for Telegram (bot token status, chat id, test button),
    search config (keywords, hours window, work type, interval), profile, LLM providers with a
    "test" button. Keys are never shown, only "connected / failing".
-7. **Stats**: jobs found per day, eligible %, applied, referral reply rate, interview rate.
+8. **Stats**: jobs found per day, eligible %, applied, referral reply rate, interview rate.
 
 Login: one admin password (env var), because the dashboard URL is public.
 
