@@ -207,6 +207,7 @@ def test_fetch_now_page(client):
 
 
 def test_new_profile_from_fetch_page(client):
+    login(client)
     r = client.post("/profiles", data={"name": "Full Stack", "keywords": "Python Full Stack Developer",
                                        "hours": "1", "work_types": ["2", "3"], "under_10": "on", "next": "/fetch"},
                     follow_redirects=False)
