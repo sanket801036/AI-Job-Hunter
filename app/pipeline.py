@@ -210,6 +210,22 @@ def judge_and_notify_in_background() -> None:
         release_lock("scan")
 
 
+def summary_text(stats: dict) -> str:
+    if stats.get("skipped"):
+        return "Another scan was already running, so its results will come from that one."
+    text = (f"Scan finished: {stats['found']} new jobs, {stats['judged']} checked, "
+            f"{stats['notified']} sent to you.")
+    if stats.get("errors"):
+        text += f" {stats['errors']} errors."
+    return text
+
+
 if __name__ == "__main__":
+    import os
+
+    from app.notify.telegram import send_message
+
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    run_once()
+    result = run_once(source=os.getenv("SCAN_SOURCE", "github"))
+    if os.getenv("NOTIFY_SUMMARY") == "true":
+        send_message(summary_text(result))

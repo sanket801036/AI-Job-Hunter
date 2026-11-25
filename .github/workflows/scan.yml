@@ -3,7 +3,14 @@ name: Scan LinkedIn jobs
 on:
   schedule:
     - cron: "3-59/10 * * * *"  # every 10 minutes at :03, :13, ... (off the busy top of the hour)
-  workflow_dispatch:         # "Run workflow" button for a manual run
+  workflow_dispatch:         # "Run workflow" button, or started by the dashboard server
+    inputs:
+      source:
+        description: "Who started the scan"
+        default: "manual"
+      notify_summary:
+        description: "Send a summary message to Telegram when done"
+        default: "false"
 
 concurrency:
   group: scan
@@ -38,3 +45,5 @@ jobs:
           AI_PROVIDERS: gemini,gemini2,groq,mistral,cerebras
           SEARCH_KEYWORDS: ${{ vars.SEARCH_KEYWORDS || 'AI Engineer,GenAI Engineer,LLM Engineer' }}
           SEARCH_HOURS: ${{ vars.SEARCH_HOURS || '6' }}
+          SCAN_SOURCE: ${{ inputs.source || 'github' }}
+          NOTIFY_SUMMARY: ${{ inputs.notify_summary || 'false' }}
