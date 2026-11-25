@@ -61,6 +61,7 @@ def save_profile(
     keywords: str = Form(...),
     hours: int = Form(6),
     work_types: list[str] = Form([]),
+    under_10: str = Form(""),
     resume_id: str = Form(""),
     db: Session = Depends(get_db),
 ):
@@ -76,6 +77,7 @@ def save_profile(
         db.add(p)
     p.name, p.keywords, p.hours = name, keywords, hours
     p.work_types = _work_types(work_types)
+    p.under_10 = under_10 == "on"
     p.resume_id = int(resume_id) if resume_id.isdigit() else None
     db.commit()
     return RedirectResponse("/profiles", status_code=303)

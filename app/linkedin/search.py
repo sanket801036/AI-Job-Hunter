@@ -84,6 +84,7 @@ def search(
     geo_id: str = "102713980",
     pages: int = 2,
     client: httpx.Client | None = None,
+    under_10: bool = False,
 ) -> list[JobCard]:
     """Jobs posted in the last `hours` for one keyword. Stops early when a page is
     short (no more results) and backs off once if LinkedIn rate limits us."""
@@ -100,6 +101,8 @@ def search(
                 "sortBy": "DD",  # newest first
                 "start": page * PAGE_SIZE,
             }
+            if under_10:
+                params["f_EA"] = "true"  # LinkedIn's "Under 10 applicants" filter
             resp = client.get(SEARCH_URL, params=params)
             if resp.status_code == 429:
                 log.warning("rate limited on %r page %d, waiting before one retry", keyword, page)

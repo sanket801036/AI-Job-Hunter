@@ -183,3 +183,24 @@ def test_i_know_this_and_skills_settings(client):
         prof = effective_profile(s)
         assert "Audit logging" in prof["skills"] and prof["about_me"] == "Built HITL agents"
         assert [x.lower() for x in prof["skills"]].count("retries") == 1
+
+
+def test_fetch_now_page(client):
+    from unittest.mock import patch
+
+    from app.linkedin.search import JobCard
+    from app.models import SearchProfile
+
+    login(client)
+    with session_scope() as s:
+        s.add(SearchProfile(name="AI Engineer", keywords="AI Engineer"))
+    assert "Under 10 applicants only" in client.get("/fetch").text
+
+    cards = [JobCard("777", "GenAI Engineer", "NewCo", "Pune", "https://l/777", None)]
+    with patch("app.pipeline.search", return_value=cards) as search, \
+         patch("app.pipeline.time.sleep"), \
+         patch("app.pipeline.judge_and_notify_in_background"):
+        r = client.post("/fetch", data={"hours": "1", "under_10": "on", "work_types": ["1", "2", "3"]})
+    assert search.call_args.kwargs["under_10"] is True
+    assert search.call_args.kwargs["hours"] == 1
+    assert "1 new job found" in r.text and "GenAI Engineer" in r.text and "checking..." in r.text

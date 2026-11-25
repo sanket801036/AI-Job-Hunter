@@ -39,6 +39,7 @@ class SearchProfile(Base):
     work_types: Mapped[str] = mapped_column(String(20), default="1,2,3")  # 1 on-site, 2 remote, 3 hybrid
     geo_id: Mapped[str] = mapped_column(String(20), default="102713980")  # India
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    under_10: Mapped[bool] = mapped_column(Boolean, default=False)  # only jobs with < 10 applicants
     resume_id: Mapped[int | None] = mapped_column(ForeignKey("resumes.id"))
 
     resume: Mapped[Resume | None] = relationship()

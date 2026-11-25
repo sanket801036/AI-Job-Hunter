@@ -48,7 +48,7 @@ def collect_new_jobs(session, client: httpx.Client) -> int:
     for profile in session.scalars(select(SearchProfile).where(SearchProfile.active.is_(True))):
         for keyword in profile.keyword_list:
             cards = search(keyword, hours=profile.hours, work_types=profile.work_types,
-                           geo_id=profile.geo_id, pages=pages, client=client)
+                           geo_id=profile.geo_id, pages=pages, client=client, under_10=profile.under_10)
             for card in dedupe(cards, seen):
                 seen.add(card.linkedin_id)
                 session.add(Job(linkedin_id=card.linkedin_id, title=card.title, company=card.company,
@@ -114,41 +114,80 @@ def run_once() -> dict:
         with session_scope() as session:
             ensure_default_profile(session)
             stats["found"] = collect_new_jobs(session, client)
-
-        with session_scope() as session:
-            profile = effective_profile(session)  # profile.yaml + blocked companies from the dashboard
-            pending = session.scalars(
-                select(Job).where(Job.status == "new").order_by(Job.found_at.desc()).limit(MAX_NEW_JOBS_PER_RUN)
-            ).all()
-            for job in pending:
-                try:
-                    status = process_job(session, job, client, profile)
-                except AllProvidersFailed as e:
-                    log.error("no LLM available, stopping this run: %s", e)
-                    stats["errors"] += 1
-                    break
-                except Exception:
-                    log.exception("job %s failed", job.linkedin_id)
-                    stats["errors"] += 1
-                    continue
-                session.commit()  # keep progress if a later job fails
-                if status == "filtered":
-                    stats["filtered"] += 1
-                elif status in ("eligible", "not_eligible"):
-                    stats["judged"] += 1
-
-        with session_scope() as session:
-            to_send = session.scalars(
-                select(Job).where(Job.status == "eligible").order_by(Job.found_at.desc())
-                .limit(MAX_NOTIFICATIONS_PER_RUN)
-            ).all()
-            stats["eligible"] = len(to_send)
-            for job in to_send:
-                if send_job(job, job.evaluation):
-                    job.status = "notified"
-                    stats["notified"] += 1
+        judge_pending(client, stats)
+    notify_eligible(stats)
     log.info("run finished: %s", stats)
     return stats
+
+
+def judge_pending(client: httpx.Client, stats: dict) -> None:
+    """Fetch details and ask the LLM for every job still marked "new"."""
+    with session_scope() as session:
+        profile = effective_profile(session)  # profile.yaml + blocked companies from the dashboard
+        pending = session.scalars(
+            select(Job).where(Job.status == "new").order_by(Job.found_at.desc()).limit(MAX_NEW_JOBS_PER_RUN)
+        ).all()
+        for job in pending:
+            try:
+                status = process_job(session, job, client, profile)
+            except AllProvidersFailed as e:
+                log.error("no LLM available, stopping this run: %s", e)
+                stats["errors"] += 1
+                break
+            except Exception:
+                log.exception("job %s failed", job.linkedin_id)
+                stats["errors"] += 1
+                continue
+            session.commit()  # keep progress if a later job fails
+            if status == "filtered":
+                stats["filtered"] += 1
+            elif status in ("eligible", "not_eligible"):
+                stats["judged"] += 1
+
+
+def notify_eligible(stats: dict) -> None:
+    with session_scope() as session:
+        to_send = session.scalars(
+            select(Job).where(Job.status == "eligible").order_by(Job.found_at.desc())
+            .limit(MAX_NOTIFICATIONS_PER_RUN)
+        ).all()
+        stats["eligible"] = len(to_send)
+        for job in to_send:
+            if send_job(job, job.evaluation):
+                job.status = "notified"
+                stats["notified"] += 1
+
+
+def fetch_now(profile_ids: list[int], hours: int, under_10: bool, work_types: str) -> int:
+    """Dashboard "Fetch now": search right away with the filters I picked, using the
+    keywords of the chosen profiles. Returns how many new jobs were stored; judging
+    them is done separately (in the background) by judge_pending()."""
+    init_db()
+    added = 0
+    with httpx.Client(headers=HEADERS, timeout=20, follow_redirects=True) as client, session_scope() as session:
+        seen = set(session.scalars(select(Job.linkedin_id)))
+        for profile in session.scalars(select(SearchProfile).where(SearchProfile.id.in_(profile_ids))):
+            for keyword in profile.keyword_list:
+                cards = search(keyword, hours=hours, work_types=work_types, geo_id=profile.geo_id,
+                               pages=1, client=client, under_10=under_10)
+                for card in dedupe(cards, seen):
+                    seen.add(card.linkedin_id)
+                    session.add(Job(linkedin_id=card.linkedin_id, title=card.title, company=card.company,
+                                    location=card.location, url=card.url, posted_at=card.posted_at,
+                                    search_profile_id=profile.id))
+                    added += 1
+                time.sleep(random.uniform(1, 2))
+    return added
+
+
+def judge_and_notify_in_background() -> None:
+    stats = {"judged": 0, "filtered": 0, "errors": 0, "eligible": 0, "notified": 0}
+    try:
+        with httpx.Client(headers=HEADERS, timeout=20, follow_redirects=True) as client:
+            judge_pending(client, stats)
+        notify_eligible(stats)
+    except Exception:
+        log.exception("background judging failed")
 
 
 if __name__ == "__main__":

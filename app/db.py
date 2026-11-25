@@ -33,6 +33,24 @@ def init_db() -> None:
     from app import models  # noqa: F401  registers the tables
 
     Base.metadata.create_all(engine)
+    _add_missing_columns()
+
+
+# Columns added after the first deploy. create_all() only creates new tables, so
+# existing ones get these through a plain ALTER TABLE.
+NEW_COLUMNS = [
+    ("search_profiles", "under_10", "BOOLEAN NOT NULL DEFAULT FALSE"),
+]
+
+
+def _add_missing_columns() -> None:
+    from sqlalchemy import inspect, text
+
+    insp = inspect(engine)
+    with engine.begin() as conn:
+        for table, column, ddl in NEW_COLUMNS:
+            if column not in {c["name"] for c in insp.get_columns(table)}:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
 
 
 @contextmanager

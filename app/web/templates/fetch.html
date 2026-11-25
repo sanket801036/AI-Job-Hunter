@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+{% if pending %}<meta http-equiv="refresh" content="8">{% endif %}
+<h1 class="text-2xl font-bold">Fetch now</h1>
+<p class="text-sm text-slate-500">Search LinkedIn right away instead of waiting for the next 10 minute run.</p>
+
+<form method="post" action="/fetch" class="mt-5 grid gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm md:grid-cols-4">
+  <div>
+    <div class="font-medium">Profiles</div>
+    {% for p in profiles %}
+    <label class="mt-1 flex items-center gap-2"><input type="checkbox" name="profile_ids" value="{{ p.id }}" {% if p.active %}checked{% endif %}> {{ p.name }}</label>
+    {% else %}<p class="text-slate-500">No profiles yet.</p>{% endfor %}
+  </div>
+  <label class="block"><span class="font-medium">Posted in</span>
+    <select name="hours" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2">
+      {% for h, label in hour_choices %}<option value="{{ h }}" {% if h == 1 %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></label>
+  <div>
+    <div class="font-medium">Workplace</div>
+    {% for k, label in work_types.items() %}
+    <label class="mt-1 flex items-center gap-2"><input type="checkbox" name="work_types" value="{{ k }}" checked> {{ label }}</label>
+    {% endfor %}
+  </div>
+  <div>
+    <div class="font-medium">Applicants</div>
+    <label class="mt-1 flex items-center gap-2"><input type="checkbox" name="under_10" checked> Under 10 applicants only</label>
+    <button class="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-2 font-semibold text-white" onclick="this.textContent='Searching LinkedIn...'">Fetch now</button>
+  </div>
+</form>
+
+{% if since %}
+<div class="mt-6 flex flex-wrap items-center justify-between gap-2">
+  <h2 class="font-semibold">{{ added }} new job{{ "" if added == 1 else "s" }} found{% if hidden %} · {{ hidden }} hidden as not a fit{% endif %}</h2>
+  {% if pending %}<span class="rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-700">Checking {{ pending }} with the LLM, this page refreshes by itself</span>{% endif %}
+</div>
+<div class="mt-3 space-y-3">
+  {% for job in results %}
+    {% if job.status == "new" %}
+    <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 opacity-70">
+      <div class="flex items-start justify-between gap-4">
+        <div><div class="font-semibold">{{ job.title }}</div><div class="text-sm text-slate-500">{{ job.company }} · {{ job.location }}</div></div>
+        <div class="flex items-center gap-2"><span class="text-xs text-amber-700">checking...</span>
+          <a href="{{ job.url }}" target="_blank" rel="noopener" class="rounded-lg bg-indigo-600 px-2 py-1 text-xs text-white">LinkedIn</a></div>
+      </div>
+    </div>
+    {% else %}{% include "_job_row.html" %}{% endif %}
+  {% else %}
+    <p class="text-sm text-slate-500">{% if added == 0 %}No new jobs for these filters. Try a wider time window or untick "Under 10 applicants".{% else %}Nothing to show.{% endif %}</p>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

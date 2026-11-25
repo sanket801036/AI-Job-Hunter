@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi import BackgroundTasks, Depends, FastAPI, Form, HTTPException, Request
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -24,7 +24,7 @@ app.include_router(profiles.router)
 app.include_router(tracker.router)
 app.include_router(companies.router)
 
-PUBLIC_PATHS = {"/login", "/healthz"}
+PUBLIC_PATHS = {"/login", "/healthz", "/favicon.ico"}
 
 
 @app.middleware("http")
@@ -40,6 +40,11 @@ async def require_login(request: Request, call_next):
 @app.get("/healthz")
 def healthz():
     return {"ok": True}
+
+
+@app.get("/favicon.ico")
+def favicon():
+    return Response(status_code=204)
 
 
 @app.get("/login")
@@ -178,3 +183,48 @@ def recheck(job_id: int, db: Session = Depends(get_db)):
     except AllProvidersFailed:
         db.rollback()
         return RedirectResponse(f"/jobs/{job_id}?recheck_failed=1", status_code=303)
+
+
+
+# ---------- Fetch now ----------
+
+HOUR_CHOICES = [(1, "Last 1 hour"), (3, "Last 3 hours"), (6, "Last 6 hours"), (12, "Last 12 hours"), (24, "Last 24 hours")]
+WORK_TYPES = {"1": "On-site", "2": "Remote", "3": "Hybrid"}
+
+
+@app.get("/fetch")
+def fetch_page(request: Request, since: str = "", added: int = -1, db: Session = Depends(get_db)):
+    profiles = db.scalars(select(SearchProfile).order_by(SearchProfile.name)).all()
+    results, hidden, pending = [], 0, 0
+    if since:
+        try:
+            since_dt = datetime.fromisoformat(since)
+        except ValueError:
+            since_dt = None
+        if since_dt:
+            batch = db.scalars(select(Job).where(Job.found_at >= since_dt).order_by(Job.found_at.desc())).all()
+            for j in batch:
+                if j.status in ("filtered", "not_eligible"):
+                    hidden += 1
+                else:
+                    results.append(j)
+                    pending += j.status == "new"
+    # best matches first, jobs still being checked at the end
+    results.sort(key=lambda j: (j.status == "new", -(j.evaluation.match_score if j.evaluation else 0)))
+    return render(request, "fetch.html", active="fetch", profiles=profiles, hour_choices=HOUR_CHOICES,
+                  work_types=WORK_TYPES, since=since, added=added, results=results, hidden=hidden,
+                  pending=pending)
+
+
+@app.post("/fetch")
+def fetch_run(background: BackgroundTasks, profile_ids: list[int] = Form([]), hours: int = Form(1),
+              under_10: str = Form(""), work_types: list[str] = Form([]), db: Session = Depends(get_db)):
+    from app.pipeline import fetch_now, judge_and_notify_in_background
+
+    if not profile_ids:
+        profile_ids = list(db.scalars(select(SearchProfile.id).where(SearchProfile.active.is_(True))))
+    wt = ",".join(w for w in work_types if w in WORK_TYPES) or "1,2,3"
+    started = datetime.now(timezone.utc)
+    added = fetch_now(profile_ids, max(1, min(hours, 72)), under_10 == "on", wt)
+    background.add_task(judge_and_notify_in_background)
+    return RedirectResponse(f"/fetch?since={quote(started.isoformat())}&added={added}", status_code=303)

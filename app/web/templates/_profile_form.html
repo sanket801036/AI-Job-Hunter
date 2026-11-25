@@ -9,6 +9,7 @@
     {% for k, label in work_types.items() %}
     <label class="flex items-center gap-1"><input type="checkbox" name="work_types" value="{{ k }}" {% if k in chosen %}checked{% endif %}> {{ label }}</label>
     {% endfor %}
+    <label class="flex items-center gap-1"><input type="checkbox" name="under_10" {% if p and p.under_10 %}checked{% endif %}> Under 10 applicants</label>
   </div>
   <select name="resume_id" class="w-full rounded-xl border border-slate-300 px-3 py-2">
     <option value="">No resume</option>
