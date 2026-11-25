@@ -28,4 +28,16 @@ pip install -r requirements.txt
 copy .env.example .env          # then fill in your keys
 ```
 
+Scan once: `python -m app.pipeline`
+Dashboard: `python -m uvicorn app.web.main:app --reload --port 8011`
+
+## Deploy the dashboard on Render
+
+- Build command: `pip install -r requirements.txt`
+- Start command: `uvicorn app.web.main:app --host 0.0.0.0 --port $PORT`
+- Environment: the same values as `.env` (plus `PYTHON_VERSION=3.11.9`).
+- Then point the Telegram bot at it: `python scripts/set_webhook.py https://<your-app>.onrender.com`
+
+After that, send **run now** or **status** to the bot.
+
 The full plan and build order is in [docs/PLAN.md](docs/PLAN.md).
