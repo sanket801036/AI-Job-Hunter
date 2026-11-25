@@ -17,7 +17,11 @@ from app.config import Settings, get_settings
 
 log = logging.getLogger(__name__)
 
-TIMEOUT = 60
+TIMEOUT = 30
+
+# Providers that failed in this process are tried last for the rest of the run, so one
+# slow or rate-limited API does not cost a timeout on every job.
+_recent_failures: set[str] = set()
 
 
 class AllProvidersFailed(RuntimeError):
@@ -114,15 +118,18 @@ def complete_json(
     providers = providers if providers is not None else build_providers(get_settings())
     if not providers:
         raise AllProvidersFailed("no LLM provider has an API key set")
+    providers = sorted(providers, key=lambda p: p.name in _recent_failures)  # stable sort
     errors = []
     for p in providers:
         try:
             result = validate(parse_json(p.call(p.key, system, user)))
+            _recent_failures.discard(p.name)
             return result, p.name
         except httpx.HTTPStatusError as e:
             msg = f"{p.name}: HTTP {e.response.status_code}"
         except Exception as e:  # timeout, bad JSON, failed validation, odd response shape
             msg = f"{p.name}: {type(e).__name__}: {str(e)[:200]}"
         log.warning("LLM fallback, %s", msg)
+        _recent_failures.add(p.name)
         errors.append(msg)
     raise AllProvidersFailed("; ".join(errors))

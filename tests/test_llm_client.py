@@ -43,3 +43,23 @@ def test_validation_failure_moves_to_next_provider():
 def test_all_failing_raises_with_reasons():
     with pytest.raises(AllProvidersFailed, match="p1: HTTP 429"):
         complete_json("sys", "user", providers=[Provider("p1", "k", _fails_http)])
+
+
+def test_failed_provider_is_tried_last_next_time():
+    from app.llm import client
+
+    client._recent_failures.clear()
+    calls = []
+
+    def slow(key, system, user):
+        calls.append("slow")
+        raise TimeoutError("too slow")
+
+    def fast(key, system, user):
+        calls.append("fast")
+        return '{"ok": true}'
+
+    providers = [Provider("slow", "k", slow), Provider("fast", "k", fast)]
+    complete_json("s", "u", providers=providers)
+    complete_json("s", "u", providers=providers)
+    assert calls == ["slow", "fast", "fast"]
