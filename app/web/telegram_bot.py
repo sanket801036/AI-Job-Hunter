@@ -8,12 +8,15 @@ import logging
 import threading
 from datetime import datetime, timedelta, timezone
 
+IST = timezone(timedelta(hours=5, minutes=30))
+
 from fastapi import APIRouter, Request
 from sqlalchemy import func, select
 
 from app.config import get_settings
 from app.db import session_scope
-from app.models import Application, Job
+from app.filters import get_setting
+from app.models import Application, Job, SearchProfile
 from app.notify.telegram import send_message
 
 log = logging.getLogger(__name__)
@@ -42,7 +45,7 @@ def _scan(notify: bool) -> None:
     from app.pipeline import run_once
 
     try:
-        stats = run_once()
+        stats = run_once(source="telegram" if notify else "cron")
         if not notify:
             return
         if stats.get("skipped"):
@@ -88,10 +91,26 @@ def status_text() -> str:
                          .where(Job.found_at >= since, Job.status.in_(("notified", "saved", "applied")))) or 0
         applied = db.scalar(select(func.count()).select_from(Application).where(Application.applied_at >= since)) or 0
         last = db.scalar(select(func.max(Job.found_at)))
+        scan = get_setting(db, "last_scan", None)
+        windows = sorted({p.hours for p in db.scalars(select(SearchProfile).where(SearchProfile.active))})
     running = "\nA scan is running now." if _run_lock.locked() else ""
-    last_txt = last.strftime("%d %b %H:%M UTC") if last else "never"
+    last_txt = _ist(last) if last else "never"
+    if scan:
+        scan_txt = (f"{_ist(datetime.fromisoformat(scan['at']))} by {scan.get('source', '?')}: "
+                    f"{scan.get('found', 0)} new, {scan.get('notified', 0)} sent")
+    else:
+        scan_txt = "not recorded yet"
+    window = "/".join(str(h) for h in windows) or "6"
     return (f"<b>Last 24 hours</b>\nJobs found: {found}\nSent to you: {sent}\n"
-            f"Applied: {applied}\nLast job found: {last_txt}{running}")
+            f"Applied: {applied}\nLast job found: {last_txt}\n\n"
+            f"Last scan: {scan_txt}\nSearches LinkedIn posts from the last {window} h; "
+            f"only jobs you have not seen are sent.{running}")
+
+
+def _ist(dt: datetime) -> str:
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(IST).strftime("%d %b %H:%M IST")
 
 
 @router.post("/telegram/webhook")
@@ -112,7 +131,7 @@ async def telegram_webhook(request: Request):
         if start_scan():
             send_message("Searching LinkedIn now. Matches will arrive in a few minutes.")
         else:
-            send_message("A scan is already running. Please wait for it to finish.")
+            send_message("The automatic scan is running right now. Any new matches will arrive in a few minutes.")
     elif cmd == "status":
         send_message(status_text())
     else:

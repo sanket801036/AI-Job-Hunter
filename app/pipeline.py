@@ -11,13 +11,14 @@ Job statuses written here:
 import logging
 import random
 import time
+from datetime import datetime, timezone
 
 import httpx
 from sqlalchemy import select
 
 from app.config import get_settings
 from app.db import init_db, release_lock, session_scope, try_lock
-from app.filters import effective_profile
+from app.filters import effective_profile, set_setting
 from app.judge import judge, pre_filter
 from app.linkedin.detail import fetch_detail
 from app.linkedin.search import HEADERS, dedupe, search
@@ -108,7 +109,7 @@ def recheck_job(session, job: Job) -> None:
         job.status = "notified"  # I am already looking at it, no need for a Telegram message
 
 
-def run_once() -> dict:
+def run_once(source: str = "github") -> dict:
     init_db()
     stats = {"found": 0, "judged": 0, "eligible": 0, "notified": 0, "filtered": 0, "errors": 0}
     if not try_lock("scan", LOCK_SECONDS):
@@ -121,6 +122,9 @@ def run_once() -> dict:
                 stats["found"] = collect_new_jobs(session, client)
             judge_pending(client, stats)
         notify_eligible(stats)
+        with session_scope() as session:  # shown by the Telegram "status" command
+            set_setting(session, "last_scan", {"at": datetime.now(timezone.utc).isoformat(),
+                                               "source": source, **stats})
     finally:
         release_lock("scan")
     log.info("run finished: %s", stats)

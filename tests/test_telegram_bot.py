@@ -48,7 +48,7 @@ def test_run_now_starts_one_scan(monkeypatch):
     h = {"X-Telegram-Bot-Api-Secret-Token": "s3cret"}
     client.post("/telegram/webhook", json=_update(111, "run now"), headers=h)
     client.post("/telegram/webhook", json=_update(111, "run now"), headers=h)
-    assert "Searching" in sent[0] and "already running" in sent[1]
+    assert "Searching" in sent[0] and "running right now" in sent[1]
 
 
 def test_cron_needs_the_key(monkeypatch):
