@@ -1,0 +1,64 @@
+# Used by the eligibility check. Keep this honest, the LLM compares the JD against it.
+name: Sanket Kolhe
+experience_years: 3
+max_years_ok: 5          # skip roles that ask for more than this
+current_ctc_lpa: 5.2
+expected_ctc_lpa: 9
+notice: immediate
+
+titles_ok:
+  - AI Engineer
+  - GenAI Engineer
+  - LLM Engineer
+  - Machine Learning Engineer
+  - Applied AI Engineer
+  - Python Developer
+  - Full Stack Developer
+
+titles_skip:              # seniority words that usually mean 6+ years
+  - Staff
+  - Principal
+  - Lead
+  - Director
+  - Head
+  - Architect
+  - Manager
+
+skills:
+  - Python
+  - LangGraph
+  - LangChain
+  - RAG
+  - AI Agents
+  - MCP
+  - LLM evaluation
+  - Guardrails
+  - FastAPI
+  - Django
+  - Flask
+  - PostgreSQL
+  - pgvector
+  - FAISS
+  - Docker
+  - GitHub Actions
+  - Azure Databricks
+  - AWS
+  - React
+  - OCR
+  - CLIP
+  - YOLOv8
+
+locations_ok:
+  - Pune
+  - Mumbai
+  - Bengaluru
+  - Hyderabad
+  - Surat
+  - Remote
+
+skip_companies:           # job boards and aggregators that repost the same roles
+  - Joblet-AI
+  - Joblet.ai
+  - JobSphere
+  - Spore N Sprouts
+  - Archer
