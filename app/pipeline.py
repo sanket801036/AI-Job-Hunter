@@ -91,6 +91,22 @@ def process_job(session, job: Job, client: httpx.Client, profile: dict) -> str:
     return job.status
 
 
+def recheck_job(session, job: Job) -> None:
+    """Judge a job again, e.g. after I added skills the LLM had marked missing."""
+    if job.evaluation is not None:
+        session.delete(job.evaluation)
+        session.flush()
+        session.expire(job, ["evaluation"])
+    keep = job.status if job.status in ("applied", "saved", "skipped") else None
+    job.status = "new"
+    with httpx.Client(headers=HEADERS, timeout=20, follow_redirects=True) as client:
+        status = process_job(session, job, client, effective_profile(session))
+    if keep:
+        job.status = keep
+    elif status == "eligible":
+        job.status = "notified"  # I am already looking at it, no need for a Telegram message
+
+
 def run_once() -> dict:
     init_db()
     stats = {"found": 0, "judged": 0, "eligible": 0, "notified": 0, "filtered": 0, "errors": 0}

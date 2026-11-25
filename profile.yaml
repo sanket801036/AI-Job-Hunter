@@ -36,6 +36,12 @@ skills:
   - Langfuse
   - Prompt engineering
   - Tool calling
+  - Human-in-the-loop
+  - Multi-step orchestration
+  - Audit logging
+  - Retries and failover
+  - REST API integration
+  - YAML configuration
   - Guardrails
   - FastAPI
   - Django

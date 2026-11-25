@@ -67,6 +67,8 @@ candidate profile, then answer with a single JSON object and nothing else:
   "reason": str               // one short sentence
 }
 Rules: years asked must be at most the candidate's acceptable maximum for "eligible".
+A skill counts as matched if it appears in Skills, the resume or the About section, including
+close equivalents (e.g. "retries" covers "error handling/retries"). Do not list it as missing then.
 If the JD gives no years, judge by seniority and responsibilities. Be strict and honest."""
 
 
@@ -74,13 +76,15 @@ def _user_prompt(title: str, company: str, location: str, description: str,
                  looking_for: str, resume_text: str, profile: dict) -> str:
     skills = ", ".join(profile.get("skills", []))
     resume = f"\nResume:\n{resume_text[:6000]}" if resume_text else ""
+    about = profile.get("about_me", "")
+    about = f"\nAbout the candidate (written by them, trust it): {about[:2000]}" if about else ""
     return (
         f"Looking for: {looking_for}\n"
         f"Candidate: {profile.get('experience_years')} years of experience, "
         f"acceptable maximum asked: {profile.get('max_years_ok')} years.\n"
         f"Skills: {skills}\n"
         f"Preferred locations: {', '.join(profile.get('locations_ok', []))}"
-        f"{resume}\n\n"
+        f"{about}{resume}\n\n"
         f"Job title: {title}\nCompany: {company}\nLocation: {location}\n"
         f"Job description:\n{description[:12000]}"
     )

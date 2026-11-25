@@ -32,6 +32,10 @@
   </div>
 </div>
 
+{% set qp = request.query_params %}
+{% if qp.get("added") %}<p class="mt-4 rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-700">Added "{{ qp.get("added") }}" to my skills. Future jobs will count it as matched.</p>{% endif %}
+{% if qp.get("rechecked") %}<p class="mt-4 rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-700">Checked again with my current skills.</p>{% endif %}
+{% if qp.get("recheck_failed") %}<p class="mt-4 rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700">No LLM answered, try again in a minute.</p>{% endif %}
 {% if ev %}
 <div class="mt-4 grid gap-4 md:grid-cols-3">
   <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
@@ -40,12 +44,18 @@
     <div class="mt-1 text-sm">{% if ev.eligible %}Eligible{% else %}Not eligible{% endif %}{% if ev.min_years is not none %} · asks {{ ev.min_years }}{% if ev.max_years %}-{{ ev.max_years }}{% else %}+{% endif %} yrs{% endif %}</div>
     <p class="mt-3 text-sm text-slate-600">{{ ev.reason }}</p>
     <p class="mt-2 text-xs text-slate-400">checked by {{ ev.provider }}</p>
+    <form method="post" action="/jobs/{{ job.id }}/recheck" class="mt-3">
+      <button class="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-semibold hover:bg-slate-200">Re-check with my current skills</button></form>
   </div>
   <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 md:col-span-2">
     <div class="text-sm font-semibold text-emerald-700">Skills I have</div>
     <div class="mt-2 flex flex-wrap gap-2">{% for s in ev.matched_skills %}<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-sm text-emerald-700">{{ s }}</span>{% endfor %}</div>
-    <div class="mt-4 text-sm font-semibold text-red-700">Missing</div>
-    <div class="mt-2 flex flex-wrap gap-2">{% for s in ev.missing_skills %}<span class="rounded-full bg-red-50 px-2 py-0.5 text-sm text-red-700">{{ s }}</span>{% endfor %}</div>
+    <div class="mt-4 text-sm font-semibold text-red-700">Missing <span class="font-normal text-slate-400">(click "I know this" if the LLM got it wrong)</span></div>
+    <div class="mt-2 flex flex-wrap gap-2">{% for s in ev.missing_skills %}
+      <form method="post" action="/jobs/{{ job.id }}/know" class="flex items-center gap-1 rounded-full bg-red-50 py-0.5 pl-2 pr-1 text-sm text-red-700">
+        <input type="hidden" name="skill" value="{{ s }}">{{ s }}
+        <button class="rounded-full bg-white px-2 text-xs text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-50">I know this</button></form>
+    {% endfor %}</div>
     {% if ev.red_flags %}<div class="mt-4 text-sm font-semibold text-amber-700">Red flags</div>
     <div class="mt-2 flex flex-wrap gap-2">{% for s in ev.red_flags %}<span class="rounded-full bg-amber-50 px-2 py-0.5 text-sm text-amber-700">{{ s }}</span>{% endfor %}</div>{% endif %}
   </div>

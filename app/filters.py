@@ -6,6 +6,8 @@ from app.config import get_profile
 from app.models import Company, Setting
 
 EXTRA_TITLE_WORDS = "extra_title_skip_words"
+EXTRA_SKILLS = "extra_skills"
+ABOUT_ME = "about_me"
 
 
 def get_setting(db: Session, key: str, default):
@@ -28,4 +30,18 @@ def effective_profile(db: Session) -> dict:
     profile["skip_companies"] = sorted({*profile.get("skip_companies", []), *blocked}, key=str.lower)
     extra = get_setting(db, EXTRA_TITLE_WORDS, [])
     profile["titles_skip"] = sorted({*profile.get("titles_skip", []), *extra}, key=str.lower)
+    # skills I added from the dashboard because the LLM marked them missing
+    known = {s.lower() for s in profile.get("skills", [])}
+    profile["skills"] = list(profile.get("skills", [])) + [
+        s for s in get_setting(db, EXTRA_SKILLS, []) if s.lower() not in known]
+    profile["about_me"] = get_setting(db, ABOUT_ME, "")
     return profile
+
+
+def add_skill(db: Session, skill: str) -> None:
+    skill = skill.strip()
+    if not skill:
+        return
+    current = get_setting(db, EXTRA_SKILLS, [])
+    if skill.lower() not in {s.lower() for s in current}:
+        set_setting(db, EXTRA_SKILLS, [*current, skill])

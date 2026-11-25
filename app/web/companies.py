@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import get_profile, get_settings
-from app.filters import EXTRA_TITLE_WORDS, get_setting, set_setting
+from app.filters import ABOUT_ME, EXTRA_SKILLS, EXTRA_TITLE_WORDS, get_setting, set_setting
 from app.models import Application, Company, Contact, Job
 from app.web.common import get_db, render
 
@@ -87,6 +87,9 @@ def settings_page(request: Request, msg: str = "", db: Session = Depends(get_db)
                   yaml_companies=get_profile().get("skip_companies", []),
                   yaml_words=get_profile().get("titles_skip", []),
                   extra_words=get_setting(db, EXTRA_TITLE_WORDS, []),
+                  yaml_skills=get_profile().get("skills", []),
+                  extra_skills=get_setting(db, EXTRA_SKILLS, []),
+                  about_me=get_setting(db, ABOUT_ME, ""),
                   telegram_ok=bool(s.telegram_bot_token and s.telegram_chat_id),
                   providers=[(p, bool(getattr(s, _key_attr(p), ""))) for p in s.providers])
 
@@ -119,6 +122,20 @@ def save_words(words: str = Form(""), db: Session = Depends(get_db)):
     set_setting(db, EXTRA_TITLE_WORDS, cleaned)
     db.commit()
     return RedirectResponse("/settings", status_code=303)
+
+
+@router.post("/settings/skills")
+def save_skills(skills: str = Form(""), about_me: str = Form(""), db: Session = Depends(get_db)):
+    seen, cleaned = set(), []
+    for s in skills.replace("\n", ",").split(","):
+        s = s.strip()
+        if s and s.lower() not in seen:
+            seen.add(s.lower())
+            cleaned.append(s)
+    set_setting(db, EXTRA_SKILLS, cleaned)
+    set_setting(db, ABOUT_ME, about_me.strip()[:3000])
+    db.commit()
+    return RedirectResponse("/settings?msg=Skills saved", status_code=303)
 
 
 @router.post("/settings/test-telegram")

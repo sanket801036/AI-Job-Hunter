@@ -161,3 +161,25 @@ def test_company_notes_block_and_settings(client):
     client.post("/settings/unblock", data={"name": "JunkJobs"})
     with session_scope() as s:
         assert s.query(Company).filter_by(name="JunkJobs").one().blocked is False
+
+
+def test_i_know_this_and_skills_settings(client):
+    from app.filters import effective_profile
+
+    login(client)
+    with session_scope() as s:
+        job = s.query(Job).one()
+        job.evaluation.missing_skills = ["YAML configuration", "Kubernetes"]
+        job_id = job.id
+    r = client.post(f"/jobs/{job_id}/know", data={"skill": "YAML configuration"})
+    assert "Added" in r.text
+    with session_scope() as s:
+        ev = s.get(Job, job_id).evaluation
+        assert ev.missing_skills == ["Kubernetes"] and "YAML configuration" in ev.matched_skills
+        assert "YAML configuration" in effective_profile(s)["skills"]
+
+    client.post("/settings/skills", data={"skills": "Audit logging\nRetries, retries", "about_me": "Built HITL agents"})
+    with session_scope() as s:
+        prof = effective_profile(s)
+        assert "Audit logging" in prof["skills"] and prof["about_me"] == "Built HITL agents"
+        assert [x.lower() for x in prof["skills"]].count("retries") == 1

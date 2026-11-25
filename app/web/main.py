@@ -1,6 +1,7 @@
 """Dashboard: jobs the bot found, my applications, referrals, companies, settings."""
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -143,3 +144,37 @@ def set_job_status(job_id: int, status: str = Form(...), back: str = Form(""), d
     job.status = status
     db.commit()
     return RedirectResponse(back or f"/jobs/{job_id}", status_code=303)
+
+
+@app.post("/jobs/{job_id}/know")
+def i_know_this(job_id: int, skill: str = Form(...), db: Session = Depends(get_db)):
+    """The LLM listed a skill as missing but I have it: remember it for every future check."""
+    from app.filters import add_skill
+
+    job = db.get(Job, job_id)
+    if job is None:
+        raise HTTPException(404, "Job not found")
+    add_skill(db, skill)
+    if job.evaluation and skill in (job.evaluation.missing_skills or []):
+        job.evaluation.missing_skills = [s for s in job.evaluation.missing_skills if s != skill]
+        job.evaluation.matched_skills = [*(job.evaluation.matched_skills or []), skill]
+    db.commit()
+    return RedirectResponse(f"/jobs/{job_id}?added={quote(skill)}", status_code=303)
+
+
+@app.post("/jobs/{job_id}/recheck")
+def recheck(job_id: int, db: Session = Depends(get_db)):
+    """Ask the LLM again with my current skills."""
+    from app.llm.client import AllProvidersFailed
+    from app.pipeline import recheck_job
+
+    job = db.get(Job, job_id)
+    if job is None:
+        raise HTTPException(404, "Job not found")
+    try:
+        recheck_job(db, job)
+        db.commit()
+        return RedirectResponse(f"/jobs/{job_id}?rechecked=1", status_code=303)
+    except AllProvidersFailed:
+        db.rollback()
+        return RedirectResponse(f"/jobs/{job_id}?recheck_failed=1", status_code=303)
