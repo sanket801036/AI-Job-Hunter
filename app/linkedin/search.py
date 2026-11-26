@@ -109,9 +109,11 @@ def search(
             if under_10:
                 params["f_EA"] = "true"  # LinkedIn's "Under 10 applicants" filter
             resp = client.get(SEARCH_URL, params=params)
-            if resp.status_code == 429:
-                log.warning("rate limited on %r page %d, waiting before one retry", keyword, page)
-                time.sleep(30)
+            for wait in (15, 30, 45):  # LinkedIn often lets the next try through
+                if resp.status_code != 429:
+                    break
+                log.warning("rate limited on %r page %d, retrying in %ds", keyword, page, wait)
+                time.sleep(wait)
                 resp = client.get(SEARCH_URL, params=params)
             last_status = resp.status_code
             if resp.status_code != 200:
