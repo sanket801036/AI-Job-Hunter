@@ -214,3 +214,9 @@ def test_new_profile_from_fetch_page(client):
     assert r.status_code == 303 and r.headers["location"] == "/fetch"
     page = client.get("/fetch").text
     assert "Full Stack" in page and "+ New profile" in page
+
+
+def test_settings_has_friend_guide(client):
+    login(client)
+    page = client.get("/settings").text
+    assert "Dost ke liye setup guide" in page and "GITHUB_REPO" in page

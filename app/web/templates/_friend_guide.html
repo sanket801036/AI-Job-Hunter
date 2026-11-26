@@ -1,0 +1,74 @@
+<details class="mt-8 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm" id="friend-guide">
+  <summary class="cursor-pointer font-semibold text-indigo-700">Dost ke liye setup guide (Hinglish)</summary>
+  <div class="mt-4 space-y-5 leading-relaxed text-slate-700">
+
+    <p>Dost ko apna khud ka bot chahiye, jisme <b>uski profile, uska resume aur uske Telegram</b> pe jobs aayein, to wo is project ki apni copy chalayega. Sab free hai. Lagbhag 40 minute lagenge. Uski copy ka data, keys aur notifications tumhari copy se bilkul alag rahenge.</p>
+
+    <div>
+      <h3 class="font-semibold text-slate-900">1. GitHub pe copy (fork)</h3>
+      <ol class="mt-1 list-decimal space-y-1 pl-5">
+        <li>GitHub account banao, phir <code>github.com/sanket801036/AI-Job-Hunter</code> kholo aur upar <b>Fork</b> dabao.</li>
+        <li>Fork me <code>profile.yaml</code> kholo, pencil icon se edit karo: <code>experience_years</code>, <code>skills</code>, <code>titles_ok</code>, <code>locations_ok</code>, <code>skip_companies</code> apne hisaab se bharo. Commit karo.</li>
+        <li><b>Actions</b> tab kholo aur "I understand my workflows, enable them" dabao.</li>
+      </ol>
+    </div>
+
+    <div>
+      <h3 class="font-semibold text-slate-900">2. Free accounts aur keys</h3>
+      <ul class="mt-1 list-disc space-y-1 pl-5">
+        <li><b>Database:</b> neon.tech pe free project banao, <i>Connection string</i> copy karo. Ye <code>DATABASE_URL</code> hai.</li>
+        <li><b>Telegram bot:</b> Telegram me <code>@BotFather</code> ko <code>/newbot</code> bhejo, naam do, token milega. Ye <code>TELEGRAM_BOT_TOKEN</code> hai. Apne naye bot ko ek baar "hi" bhejo.</li>
+        <li><b>Chat id:</b> Telegram me <code>@userinfobot</code> ko message karo, jo number mile wo <code>TELEGRAM_CHAT_ID</code> hai.</li>
+        <li><b>AI keys (kam se kam ek):</b> aistudio.google.com se <code>GEMINI_API_KEY</code>, console.groq.com se <code>GROQ_API_KEY</code>, console.mistral.ai se <code>MISTRAL_API_KEY</code>. Jitni zyada keys, utna achha: ek fail ho to doosri chalti hai.</li>
+      </ul>
+    </div>
+
+    <div>
+      <h3 class="font-semibold text-slate-900">3. GitHub secrets</h3>
+      <p>Fork me <b>Settings &rarr; Secrets and variables &rarr; Actions &rarr; New repository secret</b>. Ye sab daalo: <code>DATABASE_URL</code>, <code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_CHAT_ID</code>, <code>GEMINI_API_KEY</code>, <code>GROQ_API_KEY</code>, <code>MISTRAL_API_KEY</code>. Phir Actions tab me "Scan LinkedIn jobs" &rarr; <b>Run workflow</b> dabake test karo. Telegram pe job aani chahiye.</p>
+    </div>
+
+    <div>
+      <h3 class="font-semibold text-slate-900">4. GitHub token (scan chalane ke liye)</h3>
+      <p>GitHub &rarr; Settings &rarr; Developer settings &rarr; <b>Tokens (classic)</b> &rarr; Generate new token. Scope me sirf <code>repo</code> tick karo. Token copy karke rakho, ye <code>GITHUB_TOKEN</code> hai. Kisi ko mat dikhana.</p>
+    </div>
+
+    <div>
+      <h3 class="font-semibold text-slate-900">5. Render pe dashboard + Telegram commands</h3>
+      <ol class="mt-1 list-decimal space-y-1 pl-5">
+        <li>render.com pe "Sign in with GitHub" &rarr; <b>New Web Service</b> &rarr; apna fork chuno, plan <b>Free</b>.</li>
+        <li>Build command: <code>pip install -r requirements.txt</code></li>
+        <li>Start command: <code>uvicorn app.web.main:app --host 0.0.0.0 --port $PORT</code></li>
+        <li>Environment variables: upar wali saari keys, plus
+          <code>GITHUB_TOKEN</code>,
+          <code>GITHUB_REPO</code> = <code>uska-github-naam/AI-Job-Hunter</code>,
+          <code>DASHBOARD_PASSWORD</code> = koi bhi strong password,
+          <code>WEBHOOK_SECRET</code> = koi lambi random string (sirf letters aur numbers),
+          <code>PYTHON_VERSION</code> = <code>3.11.9</code>.</li>
+        <li>Deploy ke baad link milega, jaise <code>https://xyz.onrender.com</code>. Usme login karke resume upload karo aur Search profiles set karo.</li>
+      </ol>
+    </div>
+
+    <div>
+      <h3 class="font-semibold text-slate-900">6. Telegram ko server se jodo</h3>
+      <p>Browser me ye ek link kholo (apni values daal ke):</p>
+      <p class="mt-1 break-all rounded-xl bg-slate-100 p-3 font-mono text-xs">https://api.telegram.org/bot&lt;BOT_TOKEN&gt;/setWebhook?url=https://xyz.onrender.com/telegram/webhook&amp;secret_token=&lt;WEBHOOK_SECRET&gt;</p>
+      <p class="mt-1">"Webhook was set" aaye to ho gaya. Ab bot ko <b>run now</b> ya <b>status</b> bhej sakte ho.</p>
+    </div>
+
+    <div>
+      <h3 class="font-semibold text-slate-900">7. Har 5 minute ka timer</h3>
+      <p>cron-job.org pe free account &rarr; Create cronjob &rarr; URL: <code>https://xyz.onrender.com/cron/scan?key=&lt;WEBHOOK_SECRET&gt;</code> &rarr; schedule <b>every 5 minutes</b> &rarr; Test run me <code>{"ok":true,"started":true}</code> aana chahiye &rarr; Create.</p>
+    </div>
+
+    <div class="rounded-xl bg-amber-50 p-4 text-amber-900">
+      <h3 class="font-semibold">Dhyan rakhne wali baatein</h3>
+      <ul class="mt-1 list-disc space-y-1 pl-5">
+        <li>Bot sirf LinkedIn ke public job pages padhta hai, bina login ke. Tumhara LinkedIn account kabhi use nahi hota, isliye account pe koi khatra nahi.</li>
+        <li>Phir bhi LinkedIn ko automated reading pasand nahi, isliye timer 5 minute se kam mat karna. Kabhi kabhi LinkedIn ek scan rok deta hai (HTTP 429); agla scan wahi jobs utha leta hai.</li>
+        <li>Sirf apne liye use karo. Data bechna ya kahin publish karna nahi.</li>
+        <li>Keys aur tokens kabhi chat, screenshot ya GitHub code me mat daalna. Sirf GitHub secrets aur Render environment me.</li>
+      </ul>
+    </div>
+  </div>
+</details>
