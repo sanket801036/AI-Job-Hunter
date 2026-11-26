@@ -113,6 +113,7 @@ def status_text() -> str:
         applied = db.scalar(select(func.count()).select_from(Application).where(Application.applied_at >= since)) or 0
         last = db.scalar(select(func.max(Job.found_at)))
         scan = get_setting(db, "last_scan", None)
+        history = get_setting(db, "scan_history", [])
         windows = sorted({p.hours for p in db.scalars(select(SearchProfile).where(SearchProfile.active))})
     running = "\nA scan is running now." if _run_lock.locked() else ""
     last_txt = _ist(last) if last else "never"
@@ -122,6 +123,10 @@ def status_text() -> str:
     else:
         scan_txt = "not recorded yet"
     window = "/".join(str(h) for h in windows) or "6"
+    hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+    recent = [h for h in history if datetime.fromisoformat(h["at"]) >= hour_ago]
+    blocked = sum(1 for h in recent if h.get("linkedin_http") not in (None, 200))
+    scan_txt += f"\nScans in the last hour: {len(recent)}, blocked by LinkedIn: {blocked}"
     return (f"<b>Last 24 hours</b>\nJobs found: {found}\nSent to you: {sent}\n"
             f"Applied: {applied}\nLast job found: {last_txt}\n\n"
             f"Last scan: {scan_txt}\nSearches LinkedIn posts from the last {window} h; "
