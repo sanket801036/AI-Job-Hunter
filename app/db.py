@@ -40,6 +40,7 @@ def init_db() -> None:
 # existing ones get these through a plain ALTER TABLE.
 NEW_COLUMNS = [
     ("search_profiles", "under_10", "BOOLEAN NOT NULL DEFAULT FALSE"),
+    ("jobs", "posted_ago", "VARCHAR(50) NOT NULL DEFAULT ''"),
 ]
 
 

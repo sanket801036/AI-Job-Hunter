@@ -29,3 +29,12 @@ def test_company_site_job_gets_apply_button():
     job = _job(easy_apply=False, apply_url="https://careers.example.com/42")
     assert "Company site" in format_job(job, VERDICT)
     assert [b["text"] for b in buttons(job)["inline_keyboard"][0]] == ["Open on LinkedIn", "Apply on company site"]
+
+
+def test_repost_detection():
+    from app.notify.telegram import looks_reposted
+
+    assert looks_reposted("55 minutes ago", "Over 200 applicants")
+    assert looks_reposted("1 hour ago", "143 applicants")
+    assert not looks_reposted("55 minutes ago", "Be among the first 25 applicants")
+    assert not looks_reposted("3 days ago", "Over 200 applicants")

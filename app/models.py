@@ -67,6 +67,7 @@ class Job(Base):
     seniority: Mapped[str] = mapped_column(String(100), default="")
     employment_type: Mapped[str] = mapped_column(String(100), default="")
     applicants: Mapped[str] = mapped_column(String(100), default="")
+    posted_ago: Mapped[str] = mapped_column(String(50), default="")  # e.g. "42 minutes ago" when first read
     easy_apply: Mapped[bool | None] = mapped_column(Boolean)
     apply_url: Mapped[str] = mapped_column(String(1000), default="")
 

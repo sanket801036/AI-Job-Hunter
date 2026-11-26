@@ -16,6 +16,16 @@ def _e(text) -> str:
     return html.escape(str(text or ""), quote=False)
 
 
+def looks_reposted(posted_ago: str, applicants: str) -> bool:
+    """Posted within ~2 hours but already 100+ applicants: LinkedIn reposted an old job."""
+    import re
+
+    fresh = bool(re.search(r"\b(\d+ minutes?|1 hour|2 hours) ago", posted_ago or ""))
+    m = re.search(r"(\d+)", applicants or "")
+    many = "Over 200" in (applicants or "") or (m is not None and int(m.group(1)) >= 100)
+    return fresh and many
+
+
 def format_job(job, verdict) -> str:
     """HTML message for one job. `job` and `verdict` can be ORM rows or any object with
     the same attributes."""
@@ -42,6 +52,8 @@ def format_job(job, verdict) -> str:
         f"🏢 {_e(job.company)}  ·  📍 {_e(job.location)}",
         f"📊 {_e(facts)}",
     ]
+    if looks_reposted(getattr(job, "posted_ago", ""), job.applicants):
+        lines.append("\u267b\ufe0f <i>Likely a repost: many applicants already, apply only if it is a strong fit</i>")
     if verdict.matched_skills:
         lines.append("✅ " + _e(", ".join(verdict.matched_skills[:8])))
     if verdict.missing_skills:

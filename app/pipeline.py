@@ -18,7 +18,7 @@ from sqlalchemy import select
 
 from app.config import get_settings
 from app.db import init_db, release_lock, session_scope, try_lock
-from app.filters import effective_profile, set_setting
+from app.filters import effective_profile, get_setting, set_setting
 from app.judge import judge, pre_filter
 from app.linkedin.detail import fetch_detail
 from app.linkedin import search as search_mod
@@ -82,6 +82,7 @@ def process_job(session, job: Job, client: httpx.Client, profile: dict) -> str:
         job.seniority = detail.seniority
         job.employment_type = detail.employment_type
         job.applicants = detail.applicants
+        job.posted_ago = detail.posted_ago
         job.easy_apply = detail.easy_apply
         job.apply_url = detail.apply_url
         time.sleep(random.uniform(2, 5))
@@ -128,8 +129,10 @@ def run_once(source: str = "github") -> dict:
             judge_pending(client, stats)
         notify_eligible(stats)
         with session_scope() as session:  # shown by the Telegram "status" command
-            set_setting(session, "last_scan", {"at": datetime.now(timezone.utc).isoformat(),
-                                               "source": source, **stats})
+            record = {"at": datetime.now(timezone.utc).isoformat(), "source": source, **stats}
+            set_setting(session, "last_scan", record)
+            history = get_setting(session, "scan_history", [])[-59:]
+            set_setting(session, "scan_history", history + [record])
     finally:
         release_lock("scan")
     log.info("run finished: %s", stats)
