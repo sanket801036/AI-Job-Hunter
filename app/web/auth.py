@@ -35,9 +35,27 @@ def token_ok(token: str | None) -> bool:
     return issued.isdigit() and time.time() - int(issued) < MAX_AGE
 
 
+MAX_FAILS = 10           # wrong passwords allowed ...
+FAIL_WINDOW = 15 * 60    # ... in this many seconds, then logins pause
+_fails: list[float] = []
+
+
+def locked() -> bool:
+    """Too many wrong passwords recently. Counted for everyone, not per IP, because
+    the IP header behind Render's proxy can be faked and there is only one user."""
+    now = time.time()
+    _fails[:] = [t for t in _fails if now - t < FAIL_WINDOW]
+    return len(_fails) >= MAX_FAILS
+
+
 def password_ok(given: str) -> bool:
+    if locked():
+        return False
     real = get_settings().dashboard_password
-    return bool(real) and secrets.compare_digest(given.encode(), real.encode())
+    ok = bool(real) and secrets.compare_digest(given.encode(), real.encode())
+    if not ok:
+        _fails.append(time.time())
+    return ok
 
 
 def is_logged_in(request: Request) -> bool:

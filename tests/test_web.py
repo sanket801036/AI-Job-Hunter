@@ -48,6 +48,18 @@ def test_wrong_password_rejected(client):
     assert "error=1" in r.headers["location"]
 
 
+def test_login_pauses_after_many_wrong_passwords(client):
+    from app.web import auth
+
+    auth._fails.clear()
+    for _ in range(auth.MAX_FAILS):
+        client.post("/login", data={"password": "guess", "next": "/"}, follow_redirects=False)
+    r = client.post("/login", data={"password": "test-pass", "next": "/"}, follow_redirects=False)
+    assert "error=1" in r.headers["location"]
+    auth._fails.clear()
+    login(client)
+
+
 def test_jobs_feed_and_detail(client):
     login(client)
     r = client.get("/jobs")
