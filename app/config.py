@@ -40,7 +40,8 @@ class Settings(BaseSettings):
     # (LinkedIn answers GitHub runners but blocks some cloud hosts)
     github_token: str = ""
     github_repo: str = "sanket801036/AI-Job-Hunter"
-    github_workflow: str = "scan.yml"
+    # not "github_workflow": GitHub Actions sets GITHUB_WORKFLOW on every runner and it would win
+    scan_workflow_file: str = "scan.yml"
 
     # Dashboard
     dashboard_password: str = ""

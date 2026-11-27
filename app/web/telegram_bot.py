@@ -64,7 +64,7 @@ def _scan(notify: bool) -> None:
 def dispatch_to_github(notify: bool) -> bool:
     """Ask GitHub Actions to run the scan workflow. True if GitHub accepted it."""
     s = get_settings()
-    url = f"https://api.github.com/repos/{s.github_repo}/actions/workflows/{s.github_workflow}/dispatches"
+    url = f"https://api.github.com/repos/{s.github_repo}/actions/workflows/{s.scan_workflow_file}/dispatches"
     body = {"ref": "main", "inputs": {"source": "telegram" if notify else "cron",
                                       "notify_summary": "true" if notify else "false"}}
     try:
