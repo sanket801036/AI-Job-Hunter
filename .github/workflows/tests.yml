@@ -17,7 +17,8 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - run: pip install -r requirements.txt
+      # the plugin turns a failing test into an annotation on the commit, so it is easy to spot
+      - run: pip install -r requirements.txt pytest-github-actions-annotate-failures
 
       # tests use a throwaway sqlite file and mock every network call, so no secrets are needed
       - run: python -m pytest -q
